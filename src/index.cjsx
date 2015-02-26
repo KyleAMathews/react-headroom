@@ -62,7 +62,7 @@ module.exports = React.createClass
       raf(@update)
 
   unpin: ->
-    # If component is already pinned, call onUnpin callback.
+    # If component is pinned, call onUnpin callback.
     if @state.pinned
       @props.onUnpin()
 
