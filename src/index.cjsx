@@ -18,6 +18,7 @@ module.exports = React.createClass
   propTypes:
     children: PropTypes.any.isRequired
     disableInlineStyles: PropTypes.bool
+    disable: PropTypes.bool
     upTolerance: PropTypes.number
     downTolerance: PropTypes.number
     offset: PropTypes.number
@@ -25,6 +26,8 @@ module.exports = React.createClass
     onUnpin: PropTypes.func
 
   getDefaultProps: ->
+    disableInlineStyles: false
+    disable: false
     upTolerance: 20
     downTolerance: 10
     offset: 100
@@ -37,7 +40,22 @@ module.exports = React.createClass
     className: 'headroom headroom--pinned'
 
   componentDidMount: ->
-    window.addEventListener('scroll', @handleScroll, false)
+    unless @props.disable
+      @eventListener = window.addEventListener('scroll', @handleScroll, false)
+
+  componentWillReceiveProps: (nextProps) ->
+    if nextProps.disable
+      # Ensure component is pinned.
+      @setState {
+        translateY: 0
+        className: "headroom headroom--pinned"
+        pinned: true
+      }
+
+      # Remove the scroll listener if there is one.
+      if @eventListener
+        window.removeEventListener('scroll', @handleScroll)
+
 
   handleScroll: ->
     unless @ticking
@@ -93,7 +111,7 @@ module.exports = React.createClass
 
   render: ->
     style =
-      position: 'fixed'
+      position: if @props.disable then 'absolute' else 'fixed'
       left: 0
       right: 0
       top: 0
