@@ -43,15 +43,17 @@ module.exports = React.createClass
   componentDidMount: ->
     @setState height: @getDOMNode().offsetHeight
     unless @props.disable
-      @eventListener = window.addEventListener('scroll', @handleScroll, false)
+      window.addEventListener('scroll', @handleScroll)
 
   componentWillReceiveProps: (nextProps) ->
-    if nextProps.disable
+    if nextProps.disable and not @props.disable
       @unfix()
 
-      # Remove the scroll listener if there is one.
-      if @eventListener
-        window.removeEventListener('scroll', @handleScroll)
+      # Remove the event listener
+      window.removeEventListener('scroll', @handleScroll)
+
+    else if not nextProps.disable and @props.disable
+      window.addEventListener('scroll', @handleScroll)
 
 
   handleScroll: ->
