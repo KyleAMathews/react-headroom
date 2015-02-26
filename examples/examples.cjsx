@@ -31,14 +31,16 @@ module.exports = React.createClass
           <a href="https://github.com/KyleAMathews/react-headroom">Code on Github</a>
           <br />
           <br />
-          <p>React Headroom is a native React Component to hide/show your header.
+          <p>React Headroom is a native React Component to hide/show your header
+          on scroll.
           The header on this site is a living example. When you scroll down, it
           slides out of view and slides back in when scrolling up.
           </p>
           <p>Fixed headers are nice when you want persistent navigation but they
           can also get in the way especially on mobile where screen space is scarce.
           Using this component let's you have your persistent navigation while
-          preserving screen space when it's not needed.
+          preserving screen space when the navigation is not needed.
+          </p>
 
           <h2>Using React Headroom</h2>
           <p>It's very simple actually :)</p>
