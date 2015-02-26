@@ -111,7 +111,7 @@ module.exports = React.createClass
             <li><code>offset</code> — vertical offset in px before component is first unpinned</li>
             <li><code>upTolerance</code> — scroll tolerance in px when scrolling up before component is pinned</li>
             <li><code>downTolerance</code> — scroll tolerance in px when scrolling down before component is pinned</li>
-            <li><code>disable</code> — disable the hide/show effect if you're on say mobile.</li>
+            <li><code>disable</code> — disable pinning and unpinning</li>
           </ul>
         </div>
       </Container>
