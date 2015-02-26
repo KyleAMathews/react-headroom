@@ -24,7 +24,7 @@ module.exports = React.createClass
         </Container>
       </Headroom>
       <Container style={maxWidth:'1000px', padding: '0 1.5rem'}>
-        <div style={{marginTop: '7.5rem'}}>
+        <div style={{marginTop: '3rem'}}>
           <a href="https://github.com/KyleAMathews/react-headroom">Code on Github</a>
           <p>React Headroom is a native React Component to hide/show your header
           on scroll.
@@ -36,6 +36,9 @@ module.exports = React.createClass
           Using this component let's you have your persistent navigation while
           preserving screen space when the navigation is not needed.
           </p>
+
+          <h2>Install</h2>
+          <code>npm install react-headroom</code>
 
           <h2>Using React Headroom</h2>
           <p>It's very simple actually :)</p>
@@ -102,7 +105,6 @@ module.exports = React.createClass
           <ul>
             <li><code>onPin</code> — callback called when header is pinned</li>
             <li><code>onUnpin</code> — callback called when header is unpinned</li>
-            <li><code>offset</code> — vertical offset in px before component is first unpinned</li>
             <li><code>upTolerance</code> — scroll tolerance in px when scrolling up before component is pinned</li>
             <li><code>downTolerance</code> — scroll tolerance in px when scrolling down before component is pinned</li>
             <li><code>disable</code> — disable pinning and unpinning</li>

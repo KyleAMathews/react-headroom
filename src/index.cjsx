@@ -2,8 +2,9 @@ React = require 'react'
 objectAssign = require('react/lib/Object.assign')
 PureRenderMixin = require('react/addons').addons.PureRenderMixin
 raf = require 'raf'
-
 PropTypes = React.PropTypes
+
+shouldUpdate = require './shouldUpdate'
 
 module.exports = React.createClass
   displayName: 'Headroom'
@@ -21,36 +22,32 @@ module.exports = React.createClass
     disable: PropTypes.bool
     upTolerance: PropTypes.number
     downTolerance: PropTypes.number
-    offset: PropTypes.number
     onPin: PropTypes.func
     onUnpin: PropTypes.func
+    onUnfix: PropTypes.func
 
   getDefaultProps: ->
     disableInlineStyles: false
     disable: false
-    upTolerance: 20
-    downTolerance: 10
-    offset: 100
+    upTolerance: 5
+    downTolerance: 0
     onPin: ->
     onUnpin: ->
+    onUnfix: ->
 
   getInitialState: ->
-    pinned: true
+    state: 'unfixed'
     translateY: 0
     className: 'headroom headroom--pinned'
 
   componentDidMount: ->
+    @setState height: @getDOMNode().offsetHeight
     unless @props.disable
       @eventListener = window.addEventListener('scroll', @handleScroll, false)
 
   componentWillReceiveProps: (nextProps) ->
     if nextProps.disable
-      # Ensure component is pinned.
-      @setState {
-        translateY: 0
-        className: "headroom headroom--pinned"
-        pinned: true
-      }
+      @unfix()
 
       # Remove the scroll listener if there is one.
       if @eventListener
@@ -62,40 +59,45 @@ module.exports = React.createClass
       raf(@update)
 
   unpin: ->
-    # If component is pinned, call onUnpin callback.
-    if @state.pinned
-      @props.onUnpin()
+    @props.onUnpin()
 
     @setState {
       translateY: "-100%"
       className: "headroom headroom--unpinned"
-      pinned: false
-    }
+    }, =>
+      setTimeout((=>
+        @setState state: "unpinned"
+      ), 0)
 
   pin: ->
-    # If component is unpinned, call onPin callback.
-    unless @state.pinned
-      @props.onPin()
+    @props.onPin()
 
     @setState {
       translateY: 0
       className: "headroom headroom--pinned"
-      pinned: true
+      state: "pinned"
+    }
+
+  unfix: ->
+    @props.onUnfix()
+
+    @setState {
+      translateY: 0
+      className: "headroom headroom--unfixed"
+      state: "unfixed"
     }
 
   update: ->
     @currentScrollY = @getScrollY()
-    scrollDirection = if @currentScrollY > @lastKnownScrollY then "down" else "up"
-    distanceScrolled = Math.abs(@currentScrollY - @lastKnownScrollY)
+    {action, scrollDirection, distanceScrolled} = shouldUpdate(
+      @lastKnownScrollY, @currentScrollY, @props, @state)
 
-    if scrollDirection is "down" and
-        @currentScrollY > @props.offset and
-        distanceScrolled > @props.downTolerance
-      @unpin()
-    else if scrollDirection is "up" and
-        distanceScrolled > @props.upTolerance or
-        @currentScrollY < @props.offset
+    if action is "pin"
       @pin()
+    else if action is "unpin"
+      @unpin()
+    else if action is "unfix"
+      @unfix()
 
     @lastKnownScrollY = @currentScrollY
     @ticking = false
@@ -111,24 +113,38 @@ module.exports = React.createClass
 
   render: ->
     style =
-      position: if @props.disable then 'absolute' else 'fixed'
+      position:
+        if @props.disable or @state.state is "unfixed"
+          'initial'
+        else
+          'fixed'
+      top: 0
       left: 0
       right: 0
-      top: 0
       zIndex: 1
       webkitTransform: "translateY(#{@state.translateY})"
       msTransform: "translateY(#{@state.translateY})"
       transform: "translateY(#{@state.translateY})"
-      webkitTransition: "all .25s ease-in-out"
-      mozTransition: "all .25s ease-in-out"
-      oTransition: "all .25s ease-in-out"
-      transition: "all .25s ease-in-out"
+
+    # Don't add css transitions until after we've done the initial
+    # negative transform when transitioning from "unfixed" to "unpinned".
+    # If we don't do this, the header will flash into view temporarily
+    # while it transitions from 0 — -100%.
+    if @state.state isnt "unfixed"
+      style = objectAssign style, {
+        webkitTransition: "all .2s ease-in-out"
+        mozTransition: "all .2s ease-in-out"
+        oTransition: "all .2s ease-in-out"
+        transition: "all .2s ease-in-out"
+      }
 
     unless @props.disableInlineStyles
       style = objectAssign style, @props.style
     else
       style = @props.style
 
-    <div {...@props} style={style} className={@state.className}>
-      {@props.children}
+    <div style={{height: if @state.height then @state.height}}>
+      <div {...@props} style={style} className={@state.className}>
+        {@props.children}
+      </div>
     </div>
