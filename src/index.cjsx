@@ -1,11 +1,14 @@
 React = require 'react'
 objectAssign = require('react/lib/Object.assign')
+PureRenderMixin = require('react/addons').addons.PureRenderMixin
 raf = require 'raf'
 
 PropTypes = React.PropTypes
 
 module.exports = React.createClass
   displayName: 'Headroom'
+
+  mixins: [PureRenderMixin]
 
   # Class variables.
   currentScrollY: 0

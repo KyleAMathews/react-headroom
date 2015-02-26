@@ -86,6 +86,11 @@ module.exports = React.createClass
           {"""
           .headroom {
             transition: transform 200ms linear;
+            position: fixed;
+            left: 0;
+            right: 0;
+            top: 0;
+            zIndex: 1;
           }
           .headroom--pinned {
             transform: translateY(0%);
