@@ -41,7 +41,7 @@ module.exports = React.createClass
     className: 'headroom headroom--pinned'
 
   componentDidMount: ->
-    @setState height: @getDOMNode().offsetHeight
+    @setState height: @refs.inner.getDOMNode().offsetHeight
     unless @props.disable
       window.addEventListener('scroll', @handleScroll)
 
@@ -55,6 +55,10 @@ module.exports = React.createClass
     else if not nextProps.disable and @props.disable
       window.addEventListener('scroll', @handleScroll)
 
+  componentDidUpdate: (prevProps, prevState) ->
+    # If children have changed, remeasure height.
+    if prevProps.children isnt @props.children
+      @setState height: @refs.inner.getDOMNode().offsetHeight
 
   handleScroll: ->
     unless @ticking
@@ -146,7 +150,7 @@ module.exports = React.createClass
       style = @props.style
 
     <div style={{height: if @state.height then @state.height}}>
-      <div {...@props} style={style} className={@state.className}>
+      <div ref="inner" {...@props} style={style} className={@state.className}>
         {@props.children}
       </div>
     </div>
