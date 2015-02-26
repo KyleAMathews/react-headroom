@@ -98,7 +98,7 @@ module.exports = React.createClass
           """}
           </code></pre>
 
-          <h3>Other options</h3>
+          <h3>Other props</h3>
           <ul>
             <li><code>onPin</code> — callback called when header is pinned</li>
             <li><code>onUnpin</code> — callback called when header is unpinned</li>
