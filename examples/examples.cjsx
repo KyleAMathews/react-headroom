@@ -9,28 +9,23 @@ module.exports = React.createClass
         onPin={-> console.log "pinned"}
         onUnpin={-> console.log "unpinned"}
         style={{
-          height: 76
           background: '#FF9800'
           boxShadow: "1px 2px 2px #aaa"
         }}
       >
-        <Container style={maxWidth:'1000px', padding: '0 16px'}>
+        <Container style={maxWidth:'1000px', padding: '0 1.5rem'}>
           <h1 style={{
             margin: 0
-            padding: "16px 0"
+            padding: ".75rem 0"
             color: 'white'
           }}>
             React Headroom
           </h1>
         </Container>
       </Headroom>
-      <Container style={maxWidth:'1000px', padding: '0 16px'}>
-        <div style={{marginTop: 76}}>
-          <br />
-          <br />
+      <Container style={maxWidth:'1000px', padding: '0 1.5rem'}>
+        <div style={{marginTop: '7.5rem'}}>
           <a href="https://github.com/KyleAMathews/react-headroom">Code on Github</a>
-          <br />
-          <br />
           <p>React Headroom is a native React Component to hide/show your header
           on scroll.
           The header on this site is a living example. When you scroll down, it
@@ -48,7 +43,7 @@ module.exports = React.createClass
 
           <pre><code>
           {"""
-            <Headroom style={{background: 'red'}}>
+            <Headroom>
               <h1>You can put anything you'd like inside the Headroom Component</h1>
             </Headroom>
             """}
@@ -67,7 +62,6 @@ module.exports = React.createClass
           <pre><code>
           {"""
             <Headroom style={{
-              background: 'red'
               webkitTransition: "all .5s ease-in-out"
               mozTransition: "all .5s ease-in-out"
               oTransition: "all .5s ease-in-out"
