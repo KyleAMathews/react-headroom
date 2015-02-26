@@ -35,9 +35,10 @@ module.exports = React.createClass
           The header on this site is a living example. When you scroll down, it
           slides out of view and slides back in when scrolling up.
           </p>
-          <p>See <a href="http://wicky.nillia.ms/headroom.js/">headroom.js</a> for
-            the rational behind this UX pattern
-          </p>
+          <p>Fixed headers are nice when you want persistent navigation but they
+          can also get in the way especially on mobile where screen space is scarce.
+          Using this component let's you have your persistent navigation while
+          preserving screen space when it's not needed.
 
           <h2>Using React Headroom</h2>
           <p>It's very simple actually :)</p>
