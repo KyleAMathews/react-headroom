@@ -106,8 +106,8 @@ module.exports = React.createClass
             <li><code>onPin</code> — callback called when header is pinned</li>
             <li><code>onUnpin</code> — callback called when header is unpinned</li>
             <li><code>offset</code> — vertical offset in px before component is first unpinned</li>
-            <li><code>upTolerance</code> — scroll telerance in px when scrolling up before component is pinned</li>
-            <li><code>downTolerance</code> — scroll telerance in px when scrolling down before component is pinned</li>
+            <li><code>upTolerance</code> — scroll tolerance in px when scrolling up before component is pinned</li>
+            <li><code>downTolerance</code> — scroll tolerance in px when scrolling down before component is pinned</li>
             <li><code>disable</code> — disable the hide/show effect if you're on say mobile.</li>
           </ul>
         </div>
