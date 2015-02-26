@@ -12,7 +12,7 @@ A simple example, [see the docs site](http://kyleamathews.github.io/react-headro
 for more examples and documentation.
 
 ```javascript
-<Headroom style={{background: 'red'}}>
+<Headroom>
   <h1>You can put anything you'd like inside the Headroom Component</h1>
 </Headroom>
 ```
