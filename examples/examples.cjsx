@@ -31,8 +31,8 @@ module.exports = React.createClass
           The header on this site is a living example. When you scroll down, it
           slides out of view and slides back in when scrolling up.
           </p>
-          <p>Fixed headers are nice when you want persistent navigation but they
-          can also get in the way especially on mobile where screen space is scarce.
+          <p>Fixed headers are nice for persistent navigation but they
+          can also get in the way by taking up valuable vertical screen space.
           Using this component let's you have your persistent navigation while
           preserving screen space when the navigation is not needed.
           </p>
