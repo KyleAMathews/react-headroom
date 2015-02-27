@@ -117,11 +117,19 @@ describe 'shouldUpdate', ->
     result = shouldUpdate(50, 80, propDefaults, state)
     expect(result.action).to.equal('none')
 
-  it "should return an action of 'unfix' if currentScroll at 0", ->
+  it "should return an action of 'unfix' if
+      currentScroll at 0 or less than 0", ->
     state =
       height: 100
       state: "pinned"
     result = shouldUpdate(100, 0, propDefaults, state)
+
+    expect(result.action).to.equal('unfix')
+
+    state =
+      height: 100
+      state: "pinned"
+    result = shouldUpdate(100, -100, propDefaults, state)
 
     expect(result.action).to.equal('unfix')
 
