@@ -3,7 +3,7 @@ module.exports = (lastKnownScrollY=0, currentScrollY=0, props={}, state={}) ->
   distanceScrolled = Math.abs(currentScrollY - lastKnownScrollY)
 
   # We're at the top and not fixed yet.
-  if currentScrollY is 0 and
+  if currentScrollY <= 0 and
       state.state isnt "unfixed"
     return {
       action: "unfix"
