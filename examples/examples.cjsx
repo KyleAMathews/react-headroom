@@ -8,6 +8,7 @@ module.exports = React.createClass
       <Headroom
         onPin={-> console.log "pinned"}
         onUnpin={-> console.log "unpinned"}
+        wrapperStyle={marginBottom: '3rem'}
         style={{
           background: '#FF9800'
           boxShadow: "1px 2px 2px #aaa"
@@ -24,7 +25,7 @@ module.exports = React.createClass
         </Container>
       </Headroom>
       <Container style={maxWidth:'1000px', padding: '0 1.5rem'}>
-        <div style={{marginTop: '3rem'}}>
+        <div>
           <a href="https://github.com/KyleAMathews/react-headroom">Code on Github</a>
           <p>React Headroom is a native React Component to hide/show your header
           on scroll.
@@ -108,6 +109,7 @@ module.exports = React.createClass
             <li><code>upTolerance</code> — scroll tolerance in px when scrolling up before component is pinned</li>
             <li><code>downTolerance</code> — scroll tolerance in px when scrolling down before component is pinned</li>
             <li><code>disable</code> — disable pinning and unpinning</li>
+            <li><code>wrapperStyle</code> — pass styles to be added to the wrapper div (this maintains the components vertical space at the top of the page).</li>
           </ul>
         </div>
       </Container>
