@@ -156,7 +156,7 @@ module.exports = React.createClass
       {height: if @state.height then @state.height}
     )
 
-    <div style={wrapperStyles}>
+    <div style={wrapperStyles} className="headroom-wrapper">
       <div ref="inner" {...@props} style={style} className={@state.className}>
         {@props.children}
       </div>
