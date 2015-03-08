@@ -25,6 +25,7 @@ module.exports = React.createClass
     onPin: PropTypes.func
     onUnpin: PropTypes.func
     onUnfix: PropTypes.func
+    wrapperStyle: PropTypes.object
 
   getDefaultProps: ->
     disableInlineStyles: false
@@ -34,6 +35,7 @@ module.exports = React.createClass
     onPin: ->
     onUnpin: ->
     onUnfix: ->
+    wrapperStyle: {}
 
   getInitialState: ->
     state: 'unfixed'
@@ -149,7 +151,12 @@ module.exports = React.createClass
     else
       style = @props.style
 
-    <div style={{height: if @state.height then @state.height}}>
+    wrapperStyles = objectAssign(
+      @props.wrapperStyle,
+      {height: if @state.height then @state.height}
+    )
+
+    <div style={wrapperStyles} className="headroom-wrapper">
       <div ref="inner" {...@props} style={style} className={@state.className}>
         {@props.children}
       </div>
