@@ -130,8 +130,8 @@ module.exports = React.createClass
       left: 0
       right: 0
       zIndex: 1
-      webkitTransform: "translateY(#{@state.translateY})"
-      msTransform: "translateY(#{@state.translateY})"
+      WebkitTransform: "translateY(#{@state.translateY})"
+      MsTransform: "translateY(#{@state.translateY})"
       transform: "translateY(#{@state.translateY})"
 
     # Don't add css transitions until after we've done the initial
@@ -140,9 +140,9 @@ module.exports = React.createClass
     # while it transitions from 0 — -100%.
     if @state.state isnt "unfixed"
       style = objectAssign style, {
-        webkitTransition: "all .2s ease-in-out"
-        mozTransition: "all .2s ease-in-out"
-        oTransition: "all .2s ease-in-out"
+        WebkitTransition: "all .2s ease-in-out"
+        MozTransition: "all .2s ease-in-out"
+        OTransition: "all .2s ease-in-out"
         transition: "all .2s ease-in-out"
       }
 
