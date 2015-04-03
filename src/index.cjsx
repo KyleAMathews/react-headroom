@@ -123,7 +123,7 @@ module.exports = React.createClass
     style =
       position:
         if @props.disable or @state.state is "unfixed"
-          'initial'
+          'relative'
         else
           'fixed'
       top: 0
