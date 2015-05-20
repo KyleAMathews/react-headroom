@@ -64,6 +64,7 @@ module.exports = React.createClass
 
   handleScroll: ->
     unless @ticking
+      @ticking = true
       raf(@update)
 
   unpin: ->
