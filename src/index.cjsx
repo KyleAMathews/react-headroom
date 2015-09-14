@@ -47,6 +47,9 @@ module.exports = React.createClass
     unless @props.disable
       window.addEventListener('scroll', @handleScroll)
 
+  componentWillUnmount: ->
+    window.removeEventListener('scroll', @handleScroll)
+
   componentWillReceiveProps: (nextProps) ->
     if nextProps.disable and not @props.disable
       @unfix()
