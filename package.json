@@ -17,7 +17,7 @@
     "coffee-script": "^1.9.0",
     "css-loader": "^0.21.0",
     "gulp": "^3.8.11",
-    "mocha": "^2.1.0",
+    "mocha": "^2.3.3",
     "mocha-unfunk-reporter": "^0.4.0",
     "pre-commit": "^1.0.5",
     "react": "^0.12.2",
