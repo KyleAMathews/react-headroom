@@ -1,6 +1,6 @@
 React = require 'react'
 objectAssign = require('react/lib/Object.assign')
-PureRenderMixin = require('react/addons').addons.PureRenderMixin
+PureRenderMixin = require('react-addons-pure-render-mixin')
 raf = require 'raf'
 PropTypes = React.PropTypes
 
@@ -43,7 +43,7 @@ module.exports = React.createClass
     className: 'headroom headroom--pinned'
 
   componentDidMount: ->
-    @setState height: @refs.inner.getDOMNode().offsetHeight
+    @setState height: @refs.inner.offsetHeight
     unless @props.disable
       window.addEventListener('scroll', @handleScroll)
 
@@ -63,7 +63,7 @@ module.exports = React.createClass
   componentDidUpdate: (prevProps, prevState) ->
     # If children have changed, remeasure height.
     if prevProps.children isnt @props.children
-      @setState height: @refs.inner.getDOMNode().offsetHeight
+      @setState height: @refs.inner.offsetHeight
 
   handleScroll: ->
     unless @ticking
