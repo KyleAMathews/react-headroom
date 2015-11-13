@@ -25,7 +25,7 @@
     "react-responsive-grid": "0.0.4",
     "style-loader": "^0.8.3",
     "underscore": "^1.8.3",
-    "webpack": "^1.5.3",
+    "webpack": "^1.12.5",
     "webpack-dev-server": "^1.7.0"
   },
   "directories": {
