@@ -22,7 +22,7 @@
     "pre-commit": "^1.0.5",
     "react": "^0.12.2",
     "react-hot-loader": "^1.1.5",
-    "react-responsive-grid": "0.0.4",
+    "react-responsive-grid": "0.3.0",
     "style-loader": "^0.8.3",
     "underscore": "^1.8.3",
     "webpack": "^1.5.3",
