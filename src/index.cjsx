@@ -149,7 +149,7 @@ module.exports = React.createClass
     # If we don't do this, the header will flash into view temporarily
     # while it transitions from 0 — -100%.
     if @state.state isnt "unfixed"
-      style = objectAssign style, {
+      style = objectAssign {}, style, {
         WebkitTransition: "all .2s ease-in-out"
         MozTransition: "all .2s ease-in-out"
         OTransition: "all .2s ease-in-out"
@@ -157,11 +157,12 @@ module.exports = React.createClass
       }
 
     unless @props.disableInlineStyles
-      style = objectAssign style, @props.style
+      style = objectAssign {}, style, @props.style
     else
       style = @props.style
 
     wrapperStyles = objectAssign(
+      {},
       @props.wrapperStyle,
       {height: if @state.height then @state.height}
     )
