@@ -1,4 +1,5 @@
-React = require('react')
+React = require 'react'
+ReactDOM = require('react-dom')
 Examples = require './examples'
 
-React.renderComponent(<Examples />, document.body)
+ReactDOM.render(<Examples />, document.getElementById("mount"))
