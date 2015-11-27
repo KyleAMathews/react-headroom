@@ -27,7 +27,7 @@ module.exports = React.createClass
       <Container style={maxWidth:'1000px', padding: '0 1.5rem'}>
         <div>
           <a href="https://github.com/KyleAMathews/react-headroom">Code on Github</a>
-          <p>React Headroom is a native React Component to hide/show your header
+          <p>React Headroom is a React Component to hide/show your header
           on scroll.
           The header on this site is a living example. When you scroll down, it
           slides out of view and slides back in when scrolling up.
