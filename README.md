@@ -5,13 +5,13 @@ Hide your header until you need it.
 http://kyleamathews.github.io/react-headroom
 
 ## Install
-`npm install react-headrooom`
+`npm install react-headroom`
 
 ## Usage
 A simple example, [see the docs site](http://kyleamathews.github.io/react-headroom/)
 for more examples and documentation.
 
-```javascript
+```html
 <Headroom>
   <h1>You can put anything you'd like inside the Headroom Component</h1>
 </Headroom>

@@ -1,6 +1,6 @@
 React = require 'react'
 objectAssign = require('react/lib/Object.assign')
-PureRenderMixin = require('react/addons').addons.PureRenderMixin
+PureRenderMixin = require('react-addons-pure-render-mixin')
 raf = require 'raf'
 PropTypes = React.PropTypes
 
@@ -17,6 +17,7 @@ module.exports = React.createClass
   ticking: false
 
   propTypes:
+    parent: React.PropTypes.func
     children: PropTypes.any.isRequired
     disableInlineStyles: PropTypes.bool
     disable: PropTypes.bool
@@ -28,6 +29,7 @@ module.exports = React.createClass
     wrapperStyle: PropTypes.object
 
   getDefaultProps: ->
+    parent: -> window
     disableInlineStyles: false
     disable: false
     upTolerance: 5
@@ -37,33 +39,41 @@ module.exports = React.createClass
     onUnfix: ->
     wrapperStyle: {}
 
+
   getInitialState: ->
     state: 'unfixed'
     translateY: 0
     className: 'headroom headroom--pinned'
 
   componentDidMount: ->
-    @setState height: @refs.inner.getDOMNode().offsetHeight
+    @setState height: @refs.inner.offsetHeight
     unless @props.disable
-      window.addEventListener('scroll', @handleScroll)
+      @props.parent().addEventListener('scroll', @handleScroll)
+
+  componentWillUnmount: ->
+    window.removeEventListener('scroll', @handleScroll)
 
   componentWillReceiveProps: (nextProps) ->
     if nextProps.disable and not @props.disable
       @unfix()
 
       # Remove the event listener
-      window.removeEventListener('scroll', @handleScroll)
+      @props.parent().removeEventListener('scroll', @handleScroll)
 
     else if not nextProps.disable and @props.disable
-      window.addEventListener('scroll', @handleScroll)
+      @props.parent().addEventListener('scroll', @handleScroll)
 
   componentDidUpdate: (prevProps, prevState) ->
     # If children have changed, remeasure height.
     if prevProps.children isnt @props.children
-      @setState height: @refs.inner.getDOMNode().offsetHeight
+      @setState height: @refs.inner.offsetHeight
+
+  componentWillUnmount: ->
+    @props.parent().removeEventListener('scroll', @handleScroll)
 
   handleScroll: ->
     unless @ticking
+      @ticking = true
       raf(@update)
 
   unpin: ->
@@ -111,10 +121,10 @@ module.exports = React.createClass
     @ticking = false
 
   getScrollY: ->
-    if window.pageYOffset != undefined
-      window.pageYOffset
-    else if window.scrollTop != undefined
-      window.scrollTop
+    if @props.parent().pageYOffset != undefined
+      @props.parent().pageYOffset
+    else if @props.parent().scrollTop != undefined
+      @props.parent().scrollTop
     else (document.documentElement or
       document.body.parentNode or
       document.body).scrollTop
@@ -123,15 +133,15 @@ module.exports = React.createClass
     style =
       position:
         if @props.disable or @state.state is "unfixed"
-          'initial'
+          'relative'
         else
           'fixed'
       top: 0
       left: 0
       right: 0
       zIndex: 1
-      webkitTransform: "translateY(#{@state.translateY})"
-      msTransform: "translateY(#{@state.translateY})"
+      WebkitTransform: "translateY(#{@state.translateY})"
+      MsTransform: "translateY(#{@state.translateY})"
       transform: "translateY(#{@state.translateY})"
 
     # Don't add css transitions until after we've done the initial
@@ -139,19 +149,20 @@ module.exports = React.createClass
     # If we don't do this, the header will flash into view temporarily
     # while it transitions from 0 — -100%.
     if @state.state isnt "unfixed"
-      style = objectAssign style, {
-        webkitTransition: "all .2s ease-in-out"
-        mozTransition: "all .2s ease-in-out"
-        oTransition: "all .2s ease-in-out"
+      style = objectAssign {}, style, {
+        WebkitTransition: "all .2s ease-in-out"
+        MozTransition: "all .2s ease-in-out"
+        OTransition: "all .2s ease-in-out"
         transition: "all .2s ease-in-out"
       }
 
     unless @props.disableInlineStyles
-      style = objectAssign style, @props.style
+      style = objectAssign {}, style, @props.style
     else
       style = @props.style
 
     wrapperStyles = objectAssign(
+      {},
       @props.wrapperStyle,
       {height: if @state.height then @state.height}
     )
