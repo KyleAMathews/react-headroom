@@ -7,16 +7,16 @@
     "url": "https://github.com/KyleAMathews/react-headroom/issues"
   },
   "dependencies": {
-    "raf": "^2.0.4",
+    "raf": "^3.1.0",
     "react-addons-pure-render-mixin": "^0.14.3"
   },
   "devDependencies": {
-    "chai": "^2.1.0",
+    "chai": "^3.4.1",
     "cjsx-loader": "^2.1.0",
     "coffee-loader": "^0.7.2",
     "coffee-react": "^4.0.0",
     "coffee-script": "^1.9.0",
-    "css-loader": "^0.21.0",
+    "css-loader": "^0.23.0",
     "gulp": "^3.8.11",
     "mocha": "^2.1.0",
     "mocha-unfunk-reporter": "^0.4.0",
@@ -25,7 +25,7 @@
     "react-dom": "^0.14.3",
     "react-hot-loader": "^1.1.5",
     "react-responsive-grid": "0.3.0",
-    "style-loader": "^0.8.3",
+    "style-loader": "^0.13.0",
     "underscore": "^1.8.3",
     "webpack": "^1.5.3",
     "webpack-dev-server": "^1.7.0"
