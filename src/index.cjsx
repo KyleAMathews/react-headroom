@@ -26,7 +26,8 @@ module.exports = React.createClass
     onPin: PropTypes.func
     onUnpin: PropTypes.func
     onUnfix: PropTypes.func
-    wrapperStyle: PropTypes.object
+    wrapperStyle: PropTypes.object,
+    pinStart: PropTypes.number
 
   getDefaultProps: ->
     parent: -> window
@@ -38,6 +39,7 @@ module.exports = React.createClass
     onUnpin: ->
     onUnfix: ->
     wrapperStyle: {}
+    pinStart: 0
 
 
   getInitialState: ->
