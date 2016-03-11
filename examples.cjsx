@@ -111,6 +111,7 @@ module.exports = React.createClass
             <li><code>disable</code> — disable pinning and unpinning</li>
             <li><code>wrapperStyle</code> — pass styles to be added to the wrapper div (this maintains the components vertical space at the top of the page).</li>
             <li><code>parent</code> — provide a custom "parent" element for scroll events. <code>parent</code> should be a function which resolves to the desired element.</li>
+            <li><code>pinStart</code> — height in px where the header should start and stop pinning. Useful when you have another element above Headroom component.</li>
           </ul>
         </div>
       </Container>
