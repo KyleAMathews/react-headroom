@@ -1,7 +1,7 @@
 {
   "name": "react-headroom",
   "description": "Hide your header until you need it. React.js port of headroom.js",
-  "version": "1.7.3",
+  "version": "1.8.0",
   "author": "Kyle Mathews <mathews.kyle@gmail.com>",
   "bugs": {
     "url": "https://github.com/KyleAMathews/react-headroom/issues"
