@@ -3,7 +3,7 @@ module.exports = (lastKnownScrollY=0, currentScrollY=0, props={}, state={}) ->
   distanceScrolled = Math.abs(currentScrollY - lastKnownScrollY)
 
   # We're at the top and not fixed yet.
-  if currentScrollY < 0 and
+  if currentScrollY < props.pinStart and
       state.state isnt "unfixed"
     return {
       action: "unfix"
@@ -23,7 +23,7 @@ module.exports = (lastKnownScrollY=0, currentScrollY=0, props={}, state={}) ->
   # We transition to "unpinned" if necessary.
   else if scrollDirection is "down" and
       state.state in ["pinned", "unfixed"] and
-      currentScrollY > state.height and
+      currentScrollY > (state.height + props.pinStart) and
       distanceScrolled > props.downTolerance
     return {
       action: "unpin"

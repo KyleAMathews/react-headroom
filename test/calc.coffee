@@ -4,14 +4,18 @@ _ = require 'underscore'
 
 shouldUpdate = require '../src/shouldUpdate'
 
-propDefaults =
-  disableInlineStyles: false
-  disable: false
-  upTolerance: 0
-  downTolerance: 0
-  offset: 0
+propDefaults = {}
 
 describe 'shouldUpdate', ->
+  beforeEach ->
+    propDefaults =
+      disableInlineStyles: false
+      disable: false
+      upTolerance: 0
+      downTolerance: 0
+      offset: 0
+      pinStart: 0
+
   it 'should exist', ->
     expect(shouldUpdate).to.exist
 
@@ -50,6 +54,15 @@ describe 'shouldUpdate', ->
     result = shouldUpdate(0, 10, propDefaults, state)
     expect(result.action).to.equal('unpin')
 
+  it 'should not return an action of "unpin" if scrolling down and unfixed
+      but the scrolling amount is less than pinStart', ->
+    propDefaults.pinStart = 200
+    state =
+      height: 0
+      state: "unfixed"
+    result = shouldUpdate(100, 110, propDefaults, state)
+    expect(result.action).to.equal('none')
+
   it 'should not return an action of "unpin" if scrolling down and pinned
       but the scrolling amount is less than downTolerance', ->
     propDefaults.downTolerance = 1000
@@ -58,9 +71,6 @@ describe 'shouldUpdate', ->
       state: "pinned"
     result = shouldUpdate(100, 110, propDefaults, state)
     expect(result.action).to.equal('none')
-
-    # Restore default
-    propDefaults.downTolerance = 0
 
   it 'should return an action of "pin" if scrolling up and unpinned', ->
     state =
@@ -77,9 +87,6 @@ describe 'shouldUpdate', ->
       state: "unpinned"
     result = shouldUpdate(110, 100, propDefaults, state)
     expect(result.action).to.equal('none')
-
-    # Restore default
-    propDefaults.upTolerance = 0
 
   it "should return an action of 'none' if haven't scrolled
       past height of header", ->
@@ -105,15 +112,12 @@ describe 'shouldUpdate', ->
       state: "unpinned"
     result = shouldUpdate(50, 10, propDefaults, state)
     expect(result.action).to.equal('pin')
-    
+
     state =
       height: 100
       state: "unpinned"
     result = shouldUpdate(50, 0, propDefaults, state)
     expect(result.action).to.equal('pin')
-
-    # Restore default
-    propDefaults.upTolerance = 0
 
   it "should return an action of 'none' if scrolling down when pinned within
       height of header", ->
@@ -122,7 +126,7 @@ describe 'shouldUpdate', ->
       state: "pinned"
     result = shouldUpdate(50, 80, propDefaults, state)
     expect(result.action).to.equal('none')
-    
+
   it "should return an action of 'none' if scrolling up when pinned within
       height of header or at the top", ->
     state =
@@ -133,14 +137,24 @@ describe 'shouldUpdate', ->
     expect(result.action).to.equal('none')
 
   it "should return an action of 'unfix' if
-      currentScroll is less than 0", ->
-    
+      currentScroll is less than pinStart", ->
+    propDefaults.pinStart = 20
     state =
       height: 100
       state: "pinned"
-    result = shouldUpdate(100, -100, propDefaults, state)
+    result = shouldUpdate(100, 10, propDefaults, state)
 
     expect(result.action).to.equal('unfix')
+
+  it "should not return an action of 'unfix' if
+      currentScroll is more than pinStart", ->
+    propDefaults.pinStart = 20
+    state =
+      height: 100
+      state: "pinned"
+    result = shouldUpdate(100, 50, propDefaults, state)
+
+    expect(result.action).to.equal('none')
 
   it "should return an action of 'unpin' if scroll down past height
       of header", ->
