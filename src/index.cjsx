@@ -1,5 +1,5 @@
 React = require 'react'
-objectAssign = require('react/lib/Object.assign')
+objectAssign = require('object-assign')
 PureRenderMixin = require('react-addons-pure-render-mixin')
 raf = require 'raf'
 PropTypes = React.PropTypes
