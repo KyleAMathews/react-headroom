@@ -55,9 +55,8 @@
     "url": "https://github.com/KyleAMathews/react-headroom.git"
   },
   "scripts": {
-    "test-watch": "NODE_ENV=test node_modules/.bin/mocha -w --recursive --compilers coffee:coffee-script/register -R mocha-unfunk-reporter",
-    "#test": "NODE_ENV=test node_modules/.bin/mocha --recursive --compilers coffee:coffee-script/register -R mocha-unfunk-reporter",
-    "test": "echo \"yay\"",
+    "test-watch": "NODE_ENV=test node_modules/.bin/mocha -w --recursive --compilers coffee:babel-core/register -R mocha-unfunk-reporter",
+    "test": "NODE_ENV=test node_modules/.bin/mocha --recursive --compilers coffee:babel-core/register -R mocha-unfunk-reporter",
     "watch": "./node_modules/.bin/webpack-dev-server --hot",
     "lint": "eslint --ignore-path .gitignore .",
     "lint:fix": "eslint --ignore-path .gitignore . --fix"

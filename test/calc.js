@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-expressions */
-const { expect } = require('chai')
-const shouldUpdate = require('../src/shouldUpdate')
+import { expect } from 'chai'
+import shouldUpdate from '../src/shouldUpdate'
 
 let propDefaults = {}
 
