@@ -1,3 +1,4 @@
+/* eslint-disable no-var */
 var path = require('path')
 var webpack = require('webpack')
 
@@ -5,10 +6,10 @@ module.exports = {
   entry: [
     'webpack-dev-server/client?http://0.0.0.0:8080',
     'webpack/hot/only-dev-server',
-    './examples/index'
+    './examples/index',
   ],
   devServer: {
-    contentBase: './examples/'
+    contentBase: './examples/',
   },
   devtool: 'eval',
   debug: true,
@@ -17,21 +18,21 @@ module.exports = {
     filename: 'bundle.js',
   },
   resolveLoader: {
-    modulesDirectories: ['node_modules']
+    modulesDirectories: ['node_modules'],
   },
   plugins: [
     new webpack.HotModuleReplacementPlugin(),
     new webpack.NoErrorsPlugin(),
-    new webpack.IgnorePlugin(/un~$/)
+    new webpack.IgnorePlugin(/un~$/),
   ],
   resolve: {
-    extensions: ['', '.js', '.cjsx', '.coffee']
+    extensions: ['', '.js', '.cjsx', '.coffee'],
   },
   module: {
     loaders: [
       { test: /\.css$/, loaders: ['style', 'css'] },
       { test: /\.cjsx$/, loaders: ['react-hot', 'coffee', 'cjsx'] },
-      { test: /\.coffee$/, loader: 'coffee' }
-    ]
-  }
+      { test: /\.coffee$/, loader: 'coffee' },
+    ],
+  },
 }
