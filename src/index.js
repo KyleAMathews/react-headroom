@@ -51,9 +51,7 @@ export default class Headroom extends Component {
   }
 
   componentDidMount () {
-    this.setState({
-      height: this.refs.inner.offetHeight,
-    })
+    this.setHeightOffset()
     if (!this.props.disable) {
       this.props.parent().addEventListener('scroll', this.handleScroll)
     }
@@ -70,15 +68,19 @@ export default class Headroom extends Component {
   componentDidUpdate (prevProps) {
     // If children have changed, remeasure height.
     if (prevProps.children !== this.props.children) {
-      this.setState({
-        height: this.refs.inner.offsetHeight,
-      })
+      this.setHeightOffset()
     }
   }
 
   componentWillUnmount () {
     this.props.parent().removeEventListener('scroll', this.handleScroll)
     window.removeEventListener('scroll', this.handleScroll)
+  }
+
+  setHeightOffset = () => {
+    this.setState({
+      height: this.refs.inner.offsetHeight,
+    })
   }
 
   getScrollY = () => {
