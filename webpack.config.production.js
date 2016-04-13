@@ -25,13 +25,12 @@ module.exports = {
     new webpack.optimize.UglifyJsPlugin(),
   ],
   resolve: {
-    extensions: ['', '.js', '.cjsx', '.coffee'],
+    extensions: ['', '.js'],
   },
   module: {
     loaders: [
       { test: /\.css$/, loaders: ['style', 'css'] },
-      { test: /\.cjsx$/, loaders: ['coffee', 'cjsx'] },
-      { test: /\.coffee$/, loader: 'coffee' },
+      { test: /\.js$/, loaders: ['react-hot', 'babel'] },
     ],
   },
 }

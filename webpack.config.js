@@ -26,13 +26,12 @@ module.exports = {
     new webpack.IgnorePlugin(/un~$/),
   ],
   resolve: {
-    extensions: ['', '.js', '.cjsx', '.coffee'],
+    extensions: ['', '.js'],
   },
   module: {
     loaders: [
       { test: /\.css$/, loaders: ['style', 'css'] },
-      { test: /\.cjsx$/, loaders: ['react-hot', 'coffee', 'cjsx'] },
-      { test: /\.coffee$/, loader: 'coffee' },
+      { test: /\.js$/, loaders: ['react-hot', 'babel'] },
     ],
   },
 }
