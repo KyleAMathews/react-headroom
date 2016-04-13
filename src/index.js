@@ -1,5 +1,4 @@
 import React, { Component, PropTypes } from 'react'
-import objectAssign from 'object-assign'
 import PureRenderMixin from 'react-addons-pure-render-mixin'
 import shouldUpdate from './shouldUpdate'
 import raf from 'raf'
@@ -171,23 +170,28 @@ export default class Headroom extends Component {
     // If we don't do this, the header will flash into view temporarily
     // while it transitions from 0 — -100%.
     if (this.state.state !== 'unfixed') {
-      style = objectAssign({}, style, {
+      style = {
+        ...style,
         WebkitTransition: 'all .2s ease-in-out',
         MozTransition: 'all .2s ease-in-out',
         OTransition: 'all .2s ease-in-out',
         transition: 'all .2s ease-in-out',
-      })
+      }
     }
 
     if (!this.props.disableInlineStyles) {
-      style = objectAssign({}, style, this.props.style)
+      style = {
+        ...style,
+        ...this.props.style,
+      }
     } else {
       style = this.props.style
     }
 
-    const wrapperStyles = objectAssign({}, this.props.wrapperStyle, {
+    const wrapperStyles = {
+      ...this.props.wrapperStyle,
       height: this.state.height ? this.state.height : void 0,
-    })
+    }
 
     return (
       <div style={wrapperStyles} className="headroom-wrapper">
