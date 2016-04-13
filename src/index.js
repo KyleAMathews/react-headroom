@@ -136,7 +136,7 @@ export default class Headroom extends Component {
 
   update = () => {
     this.currentScrollY = this.getScrollY()
-    const { action, scrollDirection, distanceScrolled } = shouldUpdate(
+    const { action } = shouldUpdate(
       this.lastKnownScrollY,
       this.currentScrollY,
       this.props,
