@@ -1,16 +1,16 @@
-var path = require('path');
-var webpack = require('webpack');
+var path = require('path')
+var webpack = require('webpack')
 
 module.exports = {
   entry: [
-    "webpack-dev-server/client?http://0.0.0.0:8080",
+    'webpack-dev-server/client?http://0.0.0.0:8080',
     'webpack/hot/only-dev-server',
     './examples/index'
   ],
   devServer: {
     contentBase: './examples/'
   },
-  devtool: "eval",
+  devtool: 'eval',
   debug: true,
   output: {
     path: path.join(__dirname, 'examples'),
@@ -29,9 +29,9 @@ module.exports = {
   },
   module: {
     loaders: [
-      { test: /\.css$/, loaders: ['style', 'css']},
-      { test: /\.cjsx$/, loaders: ['react-hot', 'coffee', 'cjsx']},
+      { test: /\.css$/, loaders: ['style', 'css'] },
+      { test: /\.cjsx$/, loaders: ['react-hot', 'coffee', 'cjsx'] },
       { test: /\.coffee$/, loader: 'coffee' }
     ]
   }
-};
+}
