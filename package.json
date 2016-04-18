@@ -31,7 +31,7 @@
     "pre-commit": "^1.0.5",
     "react": "^0.14.2",
     "react-dom": "^0.14.3",
-    "react-responsive-grid": "0.3.0",
+    "react-responsive-grid": "0.3.3",
     "style-loader": "^0.13.0",
     "underscore": "^1.8.3",
     "webpack": "^1.5.3",
