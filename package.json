@@ -35,7 +35,7 @@
     "style-loader": "^0.13.0",
     "underscore": "^1.8.3",
     "webpack": "^1.5.3",
-    "webpack-dev-server": "^1.7.0"
+    "webpack-dev-server": "^1.13.0"
   },
   "directories": {
     "example": "examples"
