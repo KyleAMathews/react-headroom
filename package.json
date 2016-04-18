@@ -15,7 +15,7 @@
     "chai": "^3.4.1",
     "cjsx-loader": "^3.0.0",
     "coffee-loader": "^0.7.2",
-    "coffee-react": "^4.0.0",
+    "coffee-react": "^5.0.0",
     "coffee-script": "^1.9.0",
     "css-loader": "^0.23.0",
     "gulp": "^3.8.11",
