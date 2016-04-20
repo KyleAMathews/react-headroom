@@ -43,7 +43,7 @@ export default class Headroom extends Component {
     this.state = {
       state: 'unfixed',
       translateY: 0,
-      className: 'headroom headroom--pinned',
+      className: 'headroom headroom--unfixed',
     }
 
     this.shouldComponentUpdate = PureRenderMixin.shouldComponentUpdate.bind(this)
