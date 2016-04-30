@@ -80,11 +80,12 @@ export default class Examples extends Component {
             `}
             </code></pre>
 
-            <p>Another option is to use css. The component has a <code>headroom</code> class
-            as well as a <code>headroom--pinned</code> or <code>headroom--unpinned</code> depending on its
-            pinned state. As css can't override inline styles, first disable
-            the animation styles by passing in the <code>disableInlineStyles</code> prop. Then in
-            your css do something like:
+            <p>
+              Another option is to use css. The component has a <code>headroom</code> class
+              as well as a <code>headroom--pinned</code> or <code>headroom--unpinned</code> depending on its
+              pinned state. As css can't override inline styles, first disable
+              the animation styles by passing in the <code>disableInlineStyles</code> prop. Then in
+              your css do something like:
             </p>
 
             <pre><code>
