@@ -26,7 +26,7 @@
     "eslint-config-airbnb-base": "^2.0.0",
     "eslint-plugin-import": "^1.6.1",
     "eslint-plugin-jsx-a11y": "^1.0.4",
-    "eslint-plugin-react": "^5.0.1",
+    "eslint-plugin-react": "^5.1.0",
     "gulp": "^3.9.1",
     "mocha": "^2.4.5",
     "mocha-unfunk-reporter": "^0.4.0",
