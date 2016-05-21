@@ -1,4 +1,6 @@
-# gatsby-starter-default
-The default Gatsby starter
+# React Headroom website
 
-Install this starter (assuming Gatsby is installed) by running from your CLI: gatsby new gatsby-example-site
+This site is built using [Gatsby](https://github.com/gatsbyjs/gatsby)
+
+To run locally / develop, first run `npm install` inside this directory
+and then run `gatsby develop` to start a hot reloading server.
