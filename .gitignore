@@ -29,3 +29,4 @@ node_modules
 dist/
 examples/bundle.js
 .gatsby-context.js
+public
