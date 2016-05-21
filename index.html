@@ -1,85 +1,160 @@
-<html>
-  <head>
-    <title>React Headroom</title>
-    <meta name="viewport" content="user-scalable=no width=device-width, initial-scale=1.0 maximum-scale=1.0">
-    <link href='http://fonts.googleapis.com/css?family=Lato|Inconsolata' rel='stylesheet' type='text/css'>
-    <style>
-      html {
-          box-sizing: border-box;
-          overflow-y: scroll;
-      }
-      *, *:before, *:after {
-          box-sizing: inherit;
-      }
-      img {
-        width: 100%;
-      }
-      code {
-        border-radius: 3px;
-        background: #EDEDED;
-        border: 1px solid #CCC;
-        display: inline;
-        font-family: Inconsolata, monospace, serif;
-        font-size: 18px;
-        line-height: 24px;
-        max-width: 100%;
-        overflow: auto;
-        padding: 0 2px;
-        word-wrap: break-word;
-        white-space: pre-wrap;
-      }
-      pre {
-        margin-bottom: 1.5rem;
-        margin-top: 1.5rem;
-      }
-      pre code {
-        background: #EDEDED;
-        border: none;
-        display: inline-block;
-        font-family: "Inconsolata" monospace sans-serif;
-        overflow: initial;
-        padding: 1.5rem;
-        width: 100%;
-        word-wrap: break-word;
-        white-space: pre-wrap;
-      }
-      body {
-        color: #4A4A4A;
-        font-family: "Lato", sans-serif;
-        line-height: 1.5;
-        margin: 0;
-      }
-      h1,h2,h3,h4 {
-        color: #1f1f1f;
-        margin-bottom: 1.5rem;
-        margin-top: 3rem;
-      }
-      h1 {
-        font-size: 1.5rem;
-        line-height: 2.25rem;
-      }
-      h2 {
-        font-size: 1.25rem;
-        line-height: 1.5rem;
-      }
-      h3 {
-        font-size: 1.125rem;
-        line-height: 1.5rem;
-      }
-      p {
-        margin-bottom: 1.5rem;
-        margin-top: 1.5rem;
-      }
-      ul {
-        margin-bottom: 1.5rem;
-        margin-top: 1.5rem;
-        padding-left: 2.25rem;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="mount"></div>
-    <script src="./bundle.js"></script>
-  </body>
-</html>
+<!DOCTYPE html>
+ <html lang="en"><head><meta charset="utf-8"/><meta http-equiv="X-UA-Compatible" content="IE=edge"/><meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0"/><title></title><link href="//fonts.googleapis.com/css?family=Lato:300,700|Inconsolata:400" rel="stylesheet" type="text/css"/><style id="typography.js">/*! normalize.css v3.0.2 | MIT License | git.io/normalize */html{font-family:sans-serif;-ms-text-size-adjust:100%;-webkit-text-size-adjust:100%}body{margin:0}article,aside,details,figcaption,figure,footer,header,hgroup,main,menu,nav,section,summary{display:block}audio,canvas,progress,video{display:inline-block;vertical-align:baseline}audio:not([controls]){display:none;height:0}[hidden],template{display:none}a{background-color:transparent}a:active,a:hover{outline:0}abbr[title]{border-bottom:1px dotted}b,strong{font-weight:700}dfn{font-style:italic}h1{font-size:2em;margin:.67em 0}mark{background:#ff0;color:#000}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative;vertical-align:baseline}sup{top:-.5em}sub{bottom:-.25em}img{border:0}svg:not(:root){overflow:hidden}figure{margin:1em 40px}hr{-moz-box-sizing:content-box;box-sizing:content-box;height:0}pre{overflow:auto}code,kbd,pre,samp{font-family:monospace,monospace;font-size:1em}button,input,optgroup,select,textarea{color:inherit;font:inherit;margin:0}button{overflow:visible}button,select{text-transform:none}button,html input[type=button],input[type=reset],input[type=submit]{-webkit-appearance:button;cursor:pointer}button[disabled],html input[disabled]{cursor:default}button::-moz-focus-inner,input::-moz-focus-inner{border:0;padding:0}input{line-height:normal}input[type=checkbox],input[type=radio]{box-sizing:border-box;padding:0}input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{height:auto}input[type=search]{-webkit-appearance:textfield;-moz-box-sizing:content-box;-webkit-box-sizing:content-box;box-sizing:content-box}input[type=search]::-webkit-search-cancel-button,input[type=search]::-webkit-search-decoration{-webkit-appearance:none}fieldset{border:1px solid silver;margin:0 2px;padding:.35em .625em .75em}legend{border:0;padding:0}textarea{overflow:auto}optgroup{font-weight:700}table{border-collapse:collapse;border-spacing:0}td,th{padding:0}
 
+html {
+  box-sizing: border-box;
+  font-size: 112.5%;
+  line-height: 1.33333em;
+  overflow-y: scroll;
+}
+
+*, *:before, *:after {
+  box-sizing: inherit;
+}
+
+body {
+  color: hsl(0,0%,20%);
+  font-family: "Lato", sans-serif;
+  font-weight: 300;
+  word-wrap: break-word;
+}
+
+/* Make image responsive by default */
+img {
+  max-width: 100%;
+}
+
+h1,h2,h3,h4,h5,h6,hgroup,ul,ol,dl,dd,p,figure,pre,table,fieldset,blockquote,form,noscript,iframe,img,hr {
+margin: 0;
+margin-bottom: 1.33333rem;
+padding: 0;
+}
+
+blockquote {
+margin: 1.33333rem 3.33333rem;
+}
+
+b,strong {
+font-weight: 700
+}
+
+hr {
+background: hsl(0,0%,80%);
+border: none;
+height: 1px;
+margin-bottom: calc(1.33333rem - 1px);
+}
+
+ol,ul {
+list-style-position: outside;
+margin-left: 1.33333rem;
+}
+
+ul li,ol li {
+padding-left: 0;
+}
+
+code,kbd,pre,samp {
+font-size: 0.85rem;
+line-height: 1.33333rem;
+}
+
+table {
+font-size: 1rem;
+line-height: 2rem;
+width: 100%;
+}
+
+thead {
+text-align: left;
+}
+
+h1,h2,h3,h4,h5,h6 {
+color: hsl(0,0%,20%);
+font-family: "Lato", sans-serif;
+font-weight: 700;
+}
+
+h1 {
+font-size: 1.728rem;
+line-height: 2rem;
+}
+
+h2 {
+font-size: 1.44rem;
+line-height: 2rem;
+}
+
+h3 {
+font-size: 1.2rem;
+line-height: 2rem;
+}
+
+h4 {
+font-size: 1.12924rem;
+line-height: 2rem;
+}
+
+h5 {
+font-size: 1.06266rem;
+line-height: 1.33333rem;
+}
+
+h6 {
+font-size: 1rem;
+line-height: 1.33333rem;
+}
+
+
+</style><style>code{border-radius:3px;background:#ededed;border:1px solid #ccc;display:inline;font-family:Inconsolata,monospace,serif;font-size:18px;line-height:24px;max-width:100%;overflow:auto;padding:0 2px;word-wrap:break-word;white-space:pre-wrap}pre{margin-bottom:1.5rem;margin-top:1.5rem}pre code{background:#ededed;border:none;display:inline-block;font-family:Inconsolata,monospace sans-serif;overflow:auto;padding:1.5rem;width:100%;word-wrap:break-word;white-space:pre-wrap}</style></head><body><div id="react-mount"><div style="margin-bottom:64px;" data-reactroot="" data-reactid="1" data-react-checksum="-1983917680"><div style="margin-bottom:3rem;" class="headroom-wrapper" data-reactid="2"><div style="position:relative;top:0;left:0;right:0;z-index:1;-webkit-transform:translateY(0);-ms-transform:translateY(0);transform:translateY(0);background:#FF9800;box-shadow:1px 2px 2px #aaa;" class="headroom headroom--unfixed" data-reactid="3"><div style="max-width:1000px;margin-left:auto;margin-right:auto;padding:0 1.5rem;" data-reactid="4"><h1 style="margin:0;padding:.75rem 0;color:white;" data-reactid="5">React Headroom</h1><span style="display:block;clear:both;" data-reactid="6"> </span></div></div></div><div style="max-width:960px;margin-left:auto;margin-right:auto;padding:1.33333rem 0.66667rem;padding-top:0;" data-reactid="7"><div class="markdown" data-reactid="8"><h1 data-reactid="9"></h1><div data-reactid="10"><p><a href="https://github.com/KyleAMathews/react-headroom">Code on Github</a></p>
+<p>React Headroom is a React Component to hide/show your header on scroll. The header on this site is a living example. When you scroll down, it slides out of view and slides back in when scrolling up.</p>
+<p>Fixed headers are nice for persistent navigation but they can also get in the way by taking up valuable vertical screen space. Using this component let’s you have your persistent navigation while preserving screen space when the navigation is not needed.</p>
+<h2>Install</h2>
+<p><code>npm install react-headroom</code></p>
+<h2>Using React Headroom</h2>
+<p>It’s very simple actually :)</p>
+<p>Here’s an example:</p>
+<pre><code class="language-javascript">&lt;Headroom&gt;
+  &lt;h1&gt;You can put anything you'd like inside the Headroom Component&lt;/h1&gt;
+&lt;/Headroom&gt;
+</code></pre>
+<h3>Overriding animation</h3>
+<p>The component is intended to be plug n’ play meaning it has sensible defaults for animating the header in and out. If you’d like to override the default animation, you have two options.</p>
+<p>One option is you can override the default inline styles like the following example:</p>
+<pre><code class="language-javascript">&lt;Headroom style={{
+  webkitTransition: 'all .5s ease-in-out'
+  mozTransition: 'all .5s ease-in-out'
+  oTransition: 'all .5s ease-in-out'
+  transition: 'all .5s ease-in-out'
+}}&gt;
+  &lt;h1&gt;You can put anything you'd like inside the Headroom Component&lt;/h1&gt;
+&lt;/Headroom&gt;
+</code></pre>
+<p>Another option is to use css. The component has a <code>headroom</code> class as well as a <code>headroom--pinned</code> or <code>headroom--unpinned</code> depending on its pinned state. As css can’t override inline styles, first disable the animation styles by passing in the <code>disableInlineStyles</code> prop. Then in your css do something like:</p>
+<pre><code class="language-javascript">.headroom {
+  transition: transform <span class="hljs-number">200</span>ms linear;
+  position: fixed;
+  left: <span class="hljs-number">0</span>;
+  right: <span class="hljs-number">0</span>;
+  top: <span class="hljs-number">0</span>;
+  zIndex: <span class="hljs-number">1</span>;
+}
+.headroom--pinned {
+  transform: translateY(<span class="hljs-number">0</span>%);
+}
+.headroom--unpinned {
+  transform: translateY(<span class="hljs-number">-100</span>%);
+}
+</code></pre>
+<h3>Other props</h3>
+<ul>
+<li><code>onPin</code> — callback called when header is pinned</li>
+<li><code>onUnpin</code> — callback called when header is unpinned</li>
+<li><code>upTolerance</code> — scroll tolerance in px when scrolling up before component is pinned</li>
+<li><code>downTolerance</code> — scroll tolerance in px when scrolling down before component is pinned</li>
+<li><code>disable</code> — disable pinning and unpinning</li>
+<li><code>wrapperStyle</code> — pass styles to be added to the wrapper div (this maintains the components vertical space at the top of the page).</li>
+<li><code>parent</code> — provide a custom ‘parent’ element for scroll events. <code>parent</code> should be a function which resolves to the desired element.</li>
+<li><code>pinStart</code> — height in px where the header should start and stop pinning. Useful when you have another element above Headroom component.</li>
+</ul>
+</div></div><span style="display:block;clear:both;" data-reactid="11"> </span></div></div></div><script src="/bundle.js?t=1463853812801"></script></body></html>
