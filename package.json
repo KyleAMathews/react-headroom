@@ -62,7 +62,7 @@
     "unit-test": "NODE_ENV=test node_modules/.bin/mocha --recursive --compilers coffee:babel-core/register -R mocha-unfunk-reporter",
     "test": "npm run unit-test && npm run lint",
     "watch": "./node_modules/.bin/webpack-dev-server --hot",
-    "lint": "eslint --ignore-path .gitignore .",
+    "lint": "eslint --ignore-path .gitignore src/*",
     "lint:fix": "eslint --ignore-path .gitignore . --fix"
   }
 }
