@@ -137,7 +137,7 @@ describe('shouldUpdate', () => {
       height: 100,
       state: 'unpinned',
     }
-    result = shouldUpdate(50, 0, propDefaults, state)
+    result = shouldUpdate(50, 1, propDefaults, state)
     expect(result.action).to.equal('pin')
   })
 
@@ -157,18 +157,22 @@ describe('shouldUpdate', () => {
       height: 100,
       state: 'pinned',
     }
-    const result = shouldUpdate(100, 0, propDefaults, state)
+    const result = shouldUpdate(100, 1, propDefaults, state)
 
     expect(result.action).to.equal('none')
   })
 
-  it("should return an action of 'unfix' if currentScroll is less than pinStart", () => {
+  it("should return an action of 'unfix' if currentScroll is less than or equal to pinStart", () => {
     propDefaults.pinStart = 20
     const state = {
       height: 100,
       state: 'pinned',
     }
-    const result = shouldUpdate(100, 10, propDefaults, state)
+    let result = shouldUpdate(100, 10, propDefaults, state)
+
+    expect(result.action).to.equal('unfix')
+
+    result = shouldUpdate(100, 20, propDefaults, state)
 
     expect(result.action).to.equal('unfix')
   })
