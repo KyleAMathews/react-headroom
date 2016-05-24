@@ -20,6 +20,8 @@ Here's an example:
 </Headroom>
 ```
 
+[See the code for this website.](https://github.com/KyleAMathews/react-headroom/blob/master/website/pages/_template.jsx)
+
 ### Overriding animation
 
 The component is intended to be plug n' play meaning it has sensible defaults for animating the header in and out. If you'd like to override the default animation, you have two options.
@@ -63,6 +65,6 @@ Another option is to use css. The component has a `headroom` class as well as a 
 *   `upTolerance` — scroll tolerance in px when scrolling up before component is pinned
 *   `downTolerance` — scroll tolerance in px when scrolling down before component is pinned
 *   `disable` — disable pinning and unpinning
-*   `wrapperStyle` — pass styles to be added to the wrapper div (this maintains the components vertical space at the top of the page).
+*   `wrapperStyle` — pass styles for the wrapper div (this maintains the components vertical space at the top of the page).
 *   `parent` — provide a custom 'parent' element for scroll events. `parent` should be a function which resolves to the desired element.
 *   `pinStart` — height in px where the header should start and stop pinning. Useful when you have another element above Headroom component.
