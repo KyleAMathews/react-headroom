@@ -14,21 +14,20 @@ module.exports = React.createClass({
   },
   render () {
     return (
-      <div style={{ marginBottom: 64 }}>
+      <div style={{ marginBottom: rhythm(2) }}>
         <Headroom
           onPin={() => console.log('pinned')}
           onUnpin={() => console.log('unpinned')}
-          wrapperStyle={{ marginBottom: '3rem' }}
+          wrapperStyle={{ marginBottom: rhythm(2) }}
           style={{
             background: '#FF9800',
             boxShadow: '1px 2px 2px #aaa',
           }}
         >
-          <Container style={{ maxWidth: '1000px', padding: '0 1.5rem' }}>
+          <Container style={{ maxWidth: 960, padding: `${rhythm(1/2)}` }}>
             <h1
               style={{
                 margin: 0,
-                padding: '.75rem 0',
                 color: 'white',
               }}
             >
