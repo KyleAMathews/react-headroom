@@ -1,4 +1,4 @@
-import React, { Component, PropTypes } from 'react'
+import React, { Component, PropTypes } from 'react' // eslint-disable-line import/no-unresolved
 import PureRenderMixin from 'react-addons-pure-render-mixin'
 import shouldUpdate from './shouldUpdate'
 import raf from 'raf'
