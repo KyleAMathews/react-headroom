@@ -83,9 +83,9 @@ export default class Headroom extends Component {
   }
 
   getScrollY = () => {
-    if (this.props.parent().pageYOffset !== void 0) {
+    if (this.props.parent().pageYOffset !== undefined) {
       return this.props.parent().pageYOffset
-    } else if (this.props.parent().scrollTop !== void 0) {
+    } else if (this.props.parent().scrollTop !== undefined) {
       return this.props.parent().scrollTop
     } else {
       return (document.documentElement || document.body.parentNode || document.body).scrollTop
@@ -193,7 +193,7 @@ export default class Headroom extends Component {
 
     const wrapperStyles = {
       ...this.props.wrapperStyle,
-      height: this.state.height ? this.state.height : void 0,
+      height: this.state.height ? this.state.height : null,
     }
 
     return (
