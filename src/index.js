@@ -83,9 +83,9 @@ export default class Headroom extends Component {
   }
 
   getScrollY = () => {
-    if (this.props.parent().pageYOffset !== void 0) {
+    if (this.props.parent().pageYOffset !== undefined) {
       return this.props.parent().pageYOffset
-    } else if (this.props.parent().scrollTop !== void 0) {
+    } else if (this.props.parent().scrollTop !== undefined) {
       return this.props.parent().scrollTop
     } else {
       return (document.documentElement || document.body.parentNode || document.body).scrollTop
@@ -165,6 +165,8 @@ export default class Headroom extends Component {
       transform: `translateY(${this.state.translateY})`,
     }
 
+    let className = this.state.className
+
     // Don't add css transitions until after we've done the initial
     // negative transform when transitioning from 'unfixed' to 'unpinned'.
     // If we don't do this, the header will flash into view temporarily
@@ -177,6 +179,7 @@ export default class Headroom extends Component {
         OTransition: 'all .2s ease-in-out',
         transition: 'all .2s ease-in-out',
       }
+      className += ' headroom--scrolled'
     }
 
     if (!this.props.disableInlineStyles) {
@@ -190,7 +193,7 @@ export default class Headroom extends Component {
 
     const wrapperStyles = {
       ...this.props.wrapperStyle,
-      height: this.state.height ? this.state.height : void 0,
+      height: this.state.height ? this.state.height : null,
     }
 
     return (
@@ -199,7 +202,7 @@ export default class Headroom extends Component {
           ref="inner"
           {...this.props}
           style={style}
-          className={this.state.className}
+          className={className}
         >
           {this.props.children}
         </div>

@@ -43,18 +43,25 @@ Another option is to use css. The component has a `headroom` class as well as a 
 
 ```javascript
 .headroom {
-  transition: transform 200ms linear;
-  position: fixed;
+  top: 0;
   left: 0;
   right: 0;
-  top: 0;
   zIndex: 1;
 }
-.headroom--pinned {
-  transform: translateY(0%);
+.headroom--unfixed {
+  position: relative;
+  transform: translateY(0);
+}
+.headroom--scrolled {
+  transition: transform 200ms ease-in-out;
 }
 .headroom--unpinned {
+  position: fixed;
   transform: translateY(-100%);
+}
+.headroom--pinned {
+  position: fixed;
+  transform: translateY(0%);
 }
 ```
 
