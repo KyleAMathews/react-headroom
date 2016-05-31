@@ -2,7 +2,7 @@
 
 React Headroom is a React Component to hide/show your header on scroll. The header on this site is a living example. When you scroll down, it slides out of view and slides back in when scrolling up.
 
-Fixed headers are nice for persistent navigation but they can also get in the way by taking up valuable vertical screen space. Using this component let's you have your persistent navigation while preserving screen space when the navigation is not needed.
+Fixed headers are nice for persistent navigation but they can also get in the way by taking up valuable vertical screen space. Using this component lets you have your persistent navigation while preserving screen space when the navigation is not needed.
 
 ## Install
 
@@ -24,7 +24,7 @@ Here's an example:
 
 ### Overriding animation
 
-The component is intended to be plug n' play meaning it has sensible defaults for animating the header in and out. If you'd like to override the default animation, you have two options.
+The component is intended to be plug 'n play meaning it has sensible defaults for animating the header in and out. If you'd like to override the default animation, you have two options.
 
 One option is you can override the default inline styles like the following example:
 
@@ -39,7 +39,7 @@ One option is you can override the default inline styles like the following exam
 </Headroom>
 ```
 
-Another option is to use css. The component has a `headroom` class as well as a `headroom--pinned` or `headroom--unpinned` depending on its pinned state. As css can't override inline styles, first disable the animation styles by passing in the `disableInlineStyles` prop. Then in your css do something like:
+Another option is to use CSS. The component has a `headroom` class as well as a `headroom--pinned` or `headroom--unpinned` depending on its pinned state. As CSS can't override inline styles, first disable the animation styles by passing in the `disableInlineStyles` prop. Then in your CSS do something like:
 
 ```javascript
 .headroom {
