@@ -21,7 +21,7 @@ module.exports = React.createClass({
           wrapperStyle={{ marginBottom: rhythm(2) }}
           style={{
             background: '#FF9800',
-            boxShadow: '1px 2px 2px #aaa',
+            boxShadow: '1px 1px 1px rgba(0,0,0,0.25)',
           }}
         >
           <Container style={{ maxWidth: 960, padding: `${rhythm(1/2)}` }}>
