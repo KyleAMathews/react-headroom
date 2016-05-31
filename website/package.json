@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "author": "Kyle Mathews <mathews.kyle@gmail.com>",
   "dependencies": {
-    "gatsby": "^0.11.0",
+    "gatsby": "^0.11.2",
     "history": "^2.0.2",
     "react-document-title": "^2.0.1",
     "react-responsive-grid": "^0.3.3",
