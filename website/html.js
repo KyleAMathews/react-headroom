@@ -7,14 +7,7 @@ import { GoogleFont, TypographyStyle } from 'utils/typography'
 const BUILD_TIME = new Date().getTime()
 
 module.exports = React.createClass({
-  propTypes () {
-    return {
-      title: React.PropTypes.string,
-    }
-  },
   render () {
-    const title = DocumentTitle.rewind()
-
     let css
     if (process.env.NODE_ENV === 'production') {
       css = <style dangerouslySetInnerHTML={{ __html: require('!raw!./public/styles.css') }} />
@@ -23,13 +16,13 @@ module.exports = React.createClass({
     return (
       <html lang="en">
         <head>
+          <title>React Headroom</title>
           <meta charSet="utf-8" />
           <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
           <meta
             name="viewport"
-            content="width=device-width, initial-scale=1.0 maximum-scale=1.0"
+            content="width=device-width, initial-scale=1.0 maximum-scale=5.0"
           />
-          <title>{title}</title>
           <GoogleFont />
           <TypographyStyle />
           {css}
