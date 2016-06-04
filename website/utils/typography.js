@@ -25,7 +25,7 @@ const options = {
   ],
   modularScales: [
     {
-      scale: 'minor third',
+      scale: 'golden',
     },
   ],
 }
