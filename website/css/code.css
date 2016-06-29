@@ -1,14 +1,13 @@
 code {
   border-radius: 3px;
-  background: #EDEDED;
-  border: 1px solid #CCC;
+  background: rgba(0,0,0,0.04);
   display: inline;
   font-family: Inconsolata, monospace, serif;
   font-size: 18px;
-  line-height: 24px;
+  line-height: 29px;
   max-width: 100%;
   overflow: auto;
-  padding: 0 2px;
+  padding: 0.2em 0.3em;
   word-wrap: break-word;
   white-space: pre-wrap;
 }
@@ -17,7 +16,7 @@ pre {
   margin-top: 1.5rem;
 }
 pre code {
-  background: #EDEDED;
+  background: rgba(0,0,0,0.04);
   border: none;
   display: inline-block;
   font-family: "Inconsolata" monospace sans-serif;

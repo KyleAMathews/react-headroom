@@ -14,13 +14,13 @@ module.exports = React.createClass({
   },
   render () {
     return (
-      <div style={{ marginBottom: rhythm(2) }}>
+      <div style={{ marginBottom: rhythm(1) }}>
         <Headroom
           onPin={() => console.log('pinned')}
           onUnpin={() => console.log('unpinned')}
-          wrapperStyle={{ marginBottom: rhythm(2) }}
+          wrapperStyle={{ marginBottom: rhythm(1) }}
           style={{
-            background: '#FF9800',
+            background: 'rgb(57, 111, 176)',
             boxShadow: '1px 1px 1px rgba(0,0,0,0.25)',
           }}
         >
@@ -28,7 +28,7 @@ module.exports = React.createClass({
             <h1
               style={{
                 margin: 0,
-                color: 'white',
+                color: 'rgb(252, 253, 254)',
               }}
             >
               React Headroom

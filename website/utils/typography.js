@@ -2,10 +2,12 @@ import Typography from 'typography'
 
 const options = {
   baseFontSize: '18px',
-  baseLineHeight: '24px',
-  headerFontFamily: '"Lato", sans-serif',
-  bodyFontFamily: '"Lato", sans-serif',
+  baseLineHeight: '29px',
+  headerFontFamily: ['Lato', 'sans-serif'],
+  bodyFontFamily: ['Lato', 'sans-serif'],
   bodyWeight: 300,
+  headerGrayHue: 'cool',
+  bodyGrayHue: 'cool',
   headerWeight: 700,
   boldWeight: 700,
   googleFonts: [

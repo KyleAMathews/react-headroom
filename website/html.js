@@ -2,7 +2,8 @@ import React from 'react'
 import DocumentTitle from 'react-document-title'
 
 import { prefixLink } from 'gatsby-helpers'
-import { GoogleFont, TypographyStyle } from 'utils/typography'
+import { GoogleFont, TypographyStyle } from 'typography-react'
+import typography from './utils/typography'
 
 const BUILD_TIME = new Date().getTime()
 
@@ -23,8 +24,8 @@ module.exports = React.createClass({
             name="viewport"
             content="width=device-width, initial-scale=1.0 maximum-scale=5.0"
           />
-          <GoogleFont />
-          <TypographyStyle />
+          <GoogleFont typography={typography} />
+          <TypographyStyle typography={typography} />
           {css}
         </head>
         <body>
