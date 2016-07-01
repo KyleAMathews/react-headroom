@@ -28,3 +28,5 @@ node_modules
 .lock-wscript
 dist/
 examples/bundle.js
+.gatsby-context.js
+public

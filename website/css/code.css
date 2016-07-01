@@ -1,0 +1,29 @@
+code {
+  border-radius: 3px;
+  background: rgba(0,0,0,0.04);
+  display: inline;
+  font-family: Inconsolata, monospace, serif;
+  font-size: 18px;
+  line-height: 29px;
+  max-width: 100%;
+  overflow: auto;
+  padding: 0.2em 0.3em;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+pre {
+  margin-bottom: 1.5rem;
+  margin-top: 1.5rem;
+}
+pre code {
+  background: rgba(0,0,0,0.04);
+  border: none;
+  display: inline-block;
+  font-family: "Inconsolata" monospace sans-serif;
+  overflow: auto;
+  padding: 1.5rem;
+  width: 100%;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
