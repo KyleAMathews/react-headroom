@@ -200,7 +200,6 @@ export default class Headroom extends Component {
       <div style={wrapperStyles} className="headroom-wrapper">
         <div
           ref="inner"
-          {...this.props}
           style={style}
           className={className}
         >
