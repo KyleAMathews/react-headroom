@@ -99,7 +99,6 @@ export default class Headroom extends Component {
     }
   }
 
-
   unpin = () => {
     this.props.onUnpin()
 
@@ -154,7 +153,21 @@ export default class Headroom extends Component {
   }
 
   render () {
-    let style = {
+    const divProps = Object.assign(this.props)
+    delete divProps.onUnpin
+    delete divProps.onPin
+    delete divProps.onUnfix
+    delete divProps.disableInlineStyles
+    delete divProps.disable
+    delete divProps.parent
+    delete divProps.children
+    delete divProps.upTolerance
+    delete divProps.downTolerance
+    delete divProps.pinStart
+
+    const { style, wrapperStyle, ...rest } = divProps
+
+    let innerStyle = {
       position: this.props.disable || this.state.state === 'unfixed' ? 'relative' : 'fixed',
       top: 0,
       left: 0,
@@ -172,8 +185,8 @@ export default class Headroom extends Component {
     // If we don't do this, the header will flash into view temporarily
     // while it transitions from 0 — -100%.
     if (this.state.state !== 'unfixed') {
-      style = {
-        ...style,
+      innerStyle = {
+        ...innerStyle,
         WebkitTransition: 'all .2s ease-in-out',
         MozTransition: 'all .2s ease-in-out',
         OTransition: 'all .2s ease-in-out',
@@ -183,16 +196,16 @@ export default class Headroom extends Component {
     }
 
     if (!this.props.disableInlineStyles) {
-      style = {
+      innerStyle = {
+        ...innerStyle,
         ...style,
-        ...this.props.style,
       }
     } else {
-      style = this.props.style
+      innerStyle = style
     }
 
     const wrapperStyles = {
-      ...this.props.wrapperStyle,
+      ...wrapperStyle,
       height: this.state.height ? this.state.height : null,
     }
 
@@ -200,7 +213,8 @@ export default class Headroom extends Component {
       <div style={wrapperStyles} className="headroom-wrapper">
         <div
           ref="inner"
-          style={style}
+          {...rest}
+          style={innerStyle}
           className={className}
         >
           {this.props.children}
