@@ -20,7 +20,7 @@ Here's an example:
 </Headroom>
 ```
 
-[See the code for this website.](https://github.com/KyleAMathews/react-headroom/blob/master/website/pages/_template.jsx)
+[See the code for this website.](https://github.com/KyleAMathews/react-headroom/blob/master/www/pages/_template.jsx)
 
 ### Overriding animation
 
