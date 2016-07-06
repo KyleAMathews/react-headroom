@@ -10,7 +10,8 @@
     "react-responsive-grid": "^0.3.3",
     "react-router": "^2.5.1",
     "typography": "^0.10.5",
-    "typography-react": "^0.10.4"
+    "typography-react": "^0.10.4",
+    "typography-theme-noriega": "^0.10.8"
   },
   "devDependencies": {
     "eslint": "^2.13.1",

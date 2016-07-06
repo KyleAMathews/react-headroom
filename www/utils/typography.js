@@ -1,38 +1,7 @@
 import Typography from 'typography'
+import theme from 'typography-theme-noriega'
 
-const options = {
-  baseFontSize: '18px',
-  baseLineHeight: '29px',
-  headerFontFamily: ['Lato', 'sans-serif'],
-  bodyFontFamily: ['Lato', 'sans-serif'],
-  bodyWeight: 300,
-  headerGrayHue: 'cool',
-  bodyGrayHue: 'cool',
-  headerWeight: 700,
-  boldWeight: 700,
-  googleFonts: [
-    {
-      name: 'Lato',
-      styles: [
-        '300',
-        '700',
-      ],
-    },
-    {
-      name: 'Inconsolata',
-      styles: [
-        '400',
-      ],
-    },
-  ],
-  modularScales: [
-    {
-      scale: 'golden',
-    },
-  ],
-}
-
-const typography = new Typography(options)
+const typography = new Typography(theme)
 
 // Hot reload typography in development.
 if (process.env.NODE_ENV !== 'production') {
