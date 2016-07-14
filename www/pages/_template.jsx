@@ -4,7 +4,6 @@ import { Container } from 'react-responsive-grid'
 import Headroom from '../../src/index'
 
 import { rhythm } from 'utils/typography'
-import 'css/code.css'
 
 module.exports = React.createClass({
   propTypes () {
