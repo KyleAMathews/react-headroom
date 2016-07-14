@@ -153,7 +153,7 @@ export default class Headroom extends Component {
   }
 
   render () {
-    const divProps = Object.assign(this.props)
+    const { ...divProps } = this.props
     delete divProps.onUnpin
     delete divProps.onPin
     delete divProps.onUnfix
