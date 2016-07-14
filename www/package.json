@@ -8,16 +8,17 @@
     "history": "^2.0.2",
     "react-document-title": "^2.0.2",
     "react-responsive-grid": "^0.3.3",
-    "react-router": "^2.5.1",
-    "typography": "^0.10.5",
+    "react-router": "^2.5.2",
+    "typography": "^0.11.4",
+    "typography-plugin-code": "^0.11.4",
     "typography-react": "^0.10.4",
     "typography-theme-noriega": "^0.10.8"
   },
   "devDependencies": {
     "eslint": "^2.13.1",
     "eslint-config-airbnb": "^9.0.1",
-    "eslint-plugin-import": "^1.9.2",
-    "eslint-plugin-jsx-a11y": "^1.5.3",
+    "eslint-plugin-import": "^1.10.3",
+    "eslint-plugin-jsx-a11y": "^2.0.1",
     "eslint-plugin-react": "^5.2.2",
     "gh-pages": "^0.11.0"
   },
