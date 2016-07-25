@@ -92,6 +92,61 @@ export default class Headroom extends Component {
     }
   }
 
+  getViewportHeight = () => (
+    window.innerHeight
+      || document.documentElement.clientHeight
+      || document.body.clientHeight
+  )
+
+  getDocumentHeight = () => {
+    const body = document.body
+    const documentElement = document.documentElement
+
+    return Math.max(
+      body.scrollHeight, documentElement.scrollHeight,
+      body.offsetHeight, documentElement.offsetHeight,
+      body.clientHeight, documentElement.clientHeight
+    )
+  }
+
+  getElementPhysicalHeight = elm => Math.max(
+    elm.offsetHeight,
+    elm.clientHeight
+  )
+
+  getElementHeight = elm => Math.max(
+    elm.scrollHeight,
+    elm.offsetHeight,
+    elm.clientHeight,
+  )
+
+  getScrollerPhysicalHeight = () => {
+    const parent = this.props.parent()
+
+    return (parent === window || parent === document.body)
+      ? this.getViewportHeight()
+      : this.getElementPhysicalHeight(parent)
+  }
+
+  getScrollerHeight = () => {
+    const parent = this.props.parent()
+
+    return (parent === window || parent === document.body)
+      ? this.getDocumentHeight()
+      : this.getElementHeight(parent)
+  }
+
+  isOutOfBound = (currentScrollY) => {
+    const pastTop = currentScrollY < 0
+
+    const scrollerPhysicalHeight = this.getScrollerPhysicalHeight()
+    const scrollerHeight = this.getScrollerHeight()
+
+    const pastBottom = currentScrollY + scrollerPhysicalHeight > scrollerHeight
+
+    return pastTop || pastBottom
+  }
+
   handleScroll = () => {
     if (!this.ticking) {
       this.ticking = true
@@ -134,20 +189,24 @@ export default class Headroom extends Component {
 
   update = () => {
     this.currentScrollY = this.getScrollY()
-    const { action } = shouldUpdate(
-      this.lastKnownScrollY,
-      this.currentScrollY,
-      this.props,
-      this.state
-    )
 
-    if (action === 'pin') {
-      this.pin()
-    } else if (action === 'unpin') {
-      this.unpin()
-    } else if (action === 'unfix') {
-      this.unfix()
+    if (!this.isOutOfBound(this.currentScrollY)) {
+      const { action } = shouldUpdate(
+        this.lastKnownScrollY,
+        this.currentScrollY,
+        this.props,
+        this.state
+      )
+
+      if (action === 'pin') {
+        this.pin()
+      } else if (action === 'unpin') {
+        this.unpin()
+      } else if (action === 'unfix') {
+        this.unfix()
+      }
     }
+
     this.lastKnownScrollY = this.currentScrollY
     this.ticking = false
   }
