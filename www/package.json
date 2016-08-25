@@ -4,22 +4,22 @@
   "version": "1.0.0",
   "author": "Kyle Mathews <mathews.kyle@gmail.com>",
   "dependencies": {
-    "gatsby": "^0.11.6",
+    "gatsby": "^0.12.5",
     "history": "^2.0.2",
     "react-document-title": "^2.0.2",
-    "react-responsive-grid": "^0.3.3",
-    "react-router": "^2.5.2",
-    "typography": "^0.11.7",
-    "typography-plugin-code": "^0.11.5",
+    "react-responsive-grid": "^0.3.4",
+    "react-router": "^2.7.0",
+    "typography": "^0.13.3",
+    "typography-plugin-code": "^0.13.3",
     "typography-react": "^0.10.4",
-    "typography-theme-noriega": "^0.11.8"
+    "typography-theme-noriega": "^0.13.0"
   },
   "devDependencies": {
-    "eslint": "^2.13.1",
-    "eslint-config-airbnb": "^9.0.1",
-    "eslint-plugin-import": "^1.10.3",
-    "eslint-plugin-jsx-a11y": "^2.0.1",
-    "eslint-plugin-react": "^5.2.2",
+    "eslint": "^3.3.1",
+    "eslint-config-airbnb": "^10.0.1",
+    "eslint-plugin-import": "^1.14.0",
+    "eslint-plugin-jsx-a11y": "^2.1.0",
+    "eslint-plugin-react": "^6.1.2",
     "gh-pages": "^0.11.0"
   },
   "keywords": [
