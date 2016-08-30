@@ -1,0 +1,24 @@
+{
+  "assetsByChunkName": {
+    "route-component---index": [
+      "0.route-component---index-b7cac8a4.js",
+      "0.route-component---index-b7cac8a4.js.map"
+    ],
+    "commons": [
+      "commons-d8fa26d9.js",
+      "commons-d8fa26d9.js.map"
+    ],
+    "path---index": [
+      "2.path---index-378955c7.js",
+      "2.path---index-378955c7.js.map"
+    ],
+    "index": [
+      "index-0738be78.js",
+      "index-0738be78.js.map"
+    ],
+    "routes": [
+      "routes-8d66fce0.js",
+      "routes-8d66fce0.js.map"
+    ]
+  }
+}
