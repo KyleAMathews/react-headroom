@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "author": "Kyle Mathews <mathews.kyle@gmail.com>",
   "dependencies": {
+    "bundle-loader": "^0.5.4",
     "gatsby": "^0.12.5",
     "history": "^2.0.2",
     "react-document-title": "^2.0.2",

@@ -5,7 +5,7 @@ import Headroom from '../../src/index'
 
 import { rhythm } from 'utils/typography'
 
-module.exports = React.createClass({
+const IndexRoute = React.createClass({
   propTypes () {
     return {
       children: React.PropTypes.any,
@@ -41,9 +41,27 @@ module.exports = React.createClass({
             paddingTop: 0,
           }}
         >
-          {this.props.children}
+          <div dangerouslySetInnerHTML=
+            {{
+              __html: this.props.data.allMarkdown.edges[0].node.bodyHTML,
+            }}
+          />
         </Container>
       </div>
     )
   },
 })
+
+export default IndexRoute
+
+export const routeQuery = `
+  {
+    allMarkdown(first: 1) {
+      edges {
+        node {
+          bodyHTML
+        }
+      }
+    }
+  }
+`
