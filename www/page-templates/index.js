@@ -54,7 +54,7 @@ const IndexRoute = React.createClass({
 
 export default IndexRoute
 
-export const routeQuery = `
+export const pageQuery = `
   {
     allMarkdown(first: 1) {
       edges {

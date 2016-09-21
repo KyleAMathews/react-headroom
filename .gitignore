@@ -28,6 +28,6 @@ node_modules
 .lock-wscript
 dist/
 examples/bundle.js
-.gatsby-context.js
 public
-.gatsby-intermediate-build/
+node_modules/
+.intermediate-representation/
