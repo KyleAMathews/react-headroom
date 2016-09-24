@@ -6,21 +6,22 @@
   "dependencies": {
     "bundle-loader": "^0.5.4",
     "gatsby": "^1.0.0-alpha2",
-    "history": "^2.0.2",
+    "history": "^4.2.0",
     "react-document-title": "^2.0.2",
     "react-responsive-grid": "^0.3.4",
-    "react-router": "^2.7.0",
-    "typography": "^0.13.3",
-    "typography-plugin-code": "^0.13.3",
+    "react-router": "^2.8.1",
+    "typography": "^0.14.0",
+    "typography-plugin-code": "^0.14.0",
     "typography-react": "^0.10.4",
-    "typography-theme-noriega": "^0.13.0"
+    "typography-theme-fairy-gates": "^0.14.0",
+    "typography-theme-noriega": "^0.14.0"
   },
   "devDependencies": {
-    "eslint": "^3.3.1",
-    "eslint-config-airbnb": "^10.0.1",
-    "eslint-plugin-import": "^1.14.0",
-    "eslint-plugin-jsx-a11y": "^2.1.0",
-    "eslint-plugin-react": "^6.1.2",
+    "eslint": "^3.6.0",
+    "eslint-config-airbnb": "^11.2.0",
+    "eslint-plugin-import": "^1.16.0",
+    "eslint-plugin-jsx-a11y": "^2.2.2",
+    "eslint-plugin-react": "^6.3.0",
     "gh-pages": "^0.11.0"
   },
   "keywords": [
