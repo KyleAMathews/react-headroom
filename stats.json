@@ -1,16 +1,16 @@
 {
   "assetsByChunkName": {
     "page-template---index": [
-      "0.page-template---index-0e99745a.js",
-      "0.page-template---index-0e99745a.js.map"
+      "0.page-template---index-b8c5f36e.js",
+      "0.page-template---index-b8c5f36e.js.map"
     ],
     "commons": [
       "commons-14734157.js",
       "commons-14734157.js.map"
     ],
     "app": [
-      "app-215f6858.js",
-      "app-215f6858.js.map"
+      "app-e1e1a12f.js",
+      "app-e1e1a12f.js.map"
     ],
     "path---index": [
       "3.path---index-6720dec0.js",
