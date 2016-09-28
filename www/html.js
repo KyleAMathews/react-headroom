@@ -21,6 +21,7 @@ module.exports = React.createClass({
           <HTMLStyles />
           <GoogleFont typography={typography} />
           <TypographyStyle typography={typography} />
+          {this.props.headComponents}
         </head>
         <body>
           <div id="react-mount" dangerouslySetInnerHTML={{ __html: this.props.body }} />
