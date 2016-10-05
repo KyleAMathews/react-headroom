@@ -77,8 +77,9 @@ export default class Headroom extends Component {
   }
 
   setHeightOffset = () => {
+    const h = this.refs.inner.offsetHeight
     this.setState({
-      height: this.refs.inner.offsetHeight,
+      height: h % 2 === 0 ? h : h-1,
     })
   }
 
