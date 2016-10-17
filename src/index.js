@@ -1,5 +1,5 @@
 import React, { Component, PropTypes } from 'react' // eslint-disable-line import/no-unresolved
-import PureRenderMixin from 'react-addons-pure-render-mixin'
+import shallowequal from 'shallowequal'
 import shouldUpdate from './shouldUpdate'
 import raf from 'raf'
 
@@ -45,8 +45,6 @@ export default class Headroom extends Component {
       translateY: 0,
       className: 'headroom headroom--unfixed',
     }
-
-    this.shouldComponentUpdate = PureRenderMixin.shouldComponentUpdate.bind(this)
   }
 
   componentDidMount () {
@@ -64,6 +62,14 @@ export default class Headroom extends Component {
       this.props.parent().addEventListener('scroll', this.handleScroll)
     }
   }
+
+  shouldComponentUpdate (nextProps, nextState) {
+    return (
+      !shallowequal(this.props, nextProps) ||
+      !shallowequal(this.state, nextState)
+    )
+  }
+
   componentDidUpdate (prevProps) {
     // If children have changed, remeasure height.
     if (prevProps.children !== this.props.children) {
