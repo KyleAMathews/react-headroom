@@ -31,3 +31,4 @@ examples/bundle.js
 public
 node_modules/
 .intermediate-representation/
+www/.cache/
