@@ -1,7 +1,7 @@
 import React, { Component, PropTypes } from 'react' // eslint-disable-line import/no-unresolved
 import shallowequal from 'shallowequal'
-import shouldUpdate from './shouldUpdate'
 import raf from 'raf'
+import shouldUpdate from './shouldUpdate'
 
 const noop = () => {}
 
