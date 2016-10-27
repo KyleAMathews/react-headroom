@@ -55,14 +55,17 @@ export default class Headroom extends Component {
   }
 
   componentWillReceiveProps (nextProps) {
+    const parent = this.props.parent();
+    const nextParent = nextProps.parent();
+    
     if (nextProps.disable && !this.props.disable) {
       this.unfix()
-      this.props.parent().removeEventListener('scroll', this.handleScroll)
+      parent.removeEventListener('scroll', this.handleScroll)
     } else if (!nextProps.disable && this.props.disable) {
-      this.props.parent().addEventListener('scroll', this.handleScroll)
-    } else if (!nextProps.parent() !== this.props.parent()) {
-      this.props.parent().removeEventListener('scroll', this.handleScroll)
-      nextProps.parent().addEventListener('scroll', this.handleScroll)
+      nextParent.addEventListener('scroll', this.handleScroll)
+    } else if (parent !== nextParent) {
+      parent.removeEventListener('scroll', this.handleScroll)
+      nextParent.addEventListener('scroll', this.handleScroll)
     }
   }
 
