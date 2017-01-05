@@ -69,6 +69,7 @@ Another option is to use CSS. The component has a `headroom` class as well as a 
 
 *   `onPin` — callback called when header is pinned
 *   `onUnpin` — callback called when header is unpinned
+*   `onUnfix` — callback called when header position is no longer fixed
 *   `upTolerance` — scroll tolerance in px when scrolling up before component is pinned
 *   `downTolerance` — scroll tolerance in px when scrolling down before component is pinned
 *   `disable` — disable pinning and unpinning
