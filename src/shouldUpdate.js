@@ -8,7 +8,7 @@ export default function (
   const distanceScrolled = Math.abs(currentScrollY - lastKnownScrollY)
 
   // We're disabled
-  if(props.disable) {
+  if (props.disable) {
     return {
       action: 'none',
       scrollDirection,
