@@ -7,8 +7,15 @@ export default function (
   const scrollDirection = currentScrollY >= lastKnownScrollY ? 'down' : 'up'
   const distanceScrolled = Math.abs(currentScrollY - lastKnownScrollY)
 
-  // We're at the top and not fixed yet.
-  if (currentScrollY <= props.pinStart && state.state !== 'unfixed') {
+  // We're disabled
+  if(props.disable) {
+    return {
+      action: 'none',
+      scrollDirection,
+      distanceScrolled,
+    }
+    // We're at the top and not fixed yet.
+  } else if (currentScrollY <= props.pinStart && state.state !== 'unfixed') {
     return {
       action: 'unfix',
       scrollDirection,
