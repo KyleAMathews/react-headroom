@@ -1,4 +1,5 @@
-import React, { Component, PropTypes } from 'react' // eslint-disable-line import/no-unresolved
+import React, { Component } from 'react' // eslint-disable-line import/no-unresolved
+import PropTypes from 'prop-types'
 import shallowequal from 'shallowequal'
 import raf from 'raf'
 import shouldUpdate from './shouldUpdate'
