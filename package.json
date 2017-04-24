@@ -7,6 +7,7 @@
     "url": "https://github.com/KyleAMathews/react-headroom/issues"
   },
   "dependencies": {
+    "prop-types": "^15.5.8",
     "raf": "^3.3.0",
     "shallowequal": "^0.2.2"
   },
@@ -42,8 +43,7 @@
   "license": "MIT",
   "main": "dist/index.js",
   "peerDependencies": {
-    "react": "*",
-    "prop-types": "*"
+    "react": "*"
   },
   "repository": {
     "type": "git",
@@ -55,6 +55,7 @@
     "unit-test": "NODE_ENV=test node_modules/.bin/mocha --recursive --compilers coffee:babel-core/register -R mocha-unfunk-reporter",
     "test": "npm run unit-test && npm run lint",
     "watch": "./node_modules/.bin/webpack-dev-server --hot",
+    "publish-patch": "npm run build && npm version patch && npm publish; git push; git push --tags",
     "lint": "eslint --ignore-path .gitignore src/*",
     "lint:fix": "eslint --ignore-path .gitignore . --fix"
   }
