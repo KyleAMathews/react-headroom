@@ -46,7 +46,7 @@ Another option is to use CSS. The component has a `headroom` class as well as a 
   top: 0;
   left: 0;
   right: 0;
-  zIndex: 1;
+  z-index: 1;
 }
 .headroom--unfixed {
   position: relative;
