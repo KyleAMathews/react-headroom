@@ -234,9 +234,26 @@ export default class Headroom extends Component {
 
     const { style, wrapperStyle, ...rest } = divProps
 
+    const allHeadrooms = document.getElementsByClassName('headroom-wrapper')
+    let top = 0
+    if (allHeadrooms.length > 1) {
+      let currentHeadroomIdx = -1
+      for (let i = 0; i < allHeadrooms.length; i += 1) {
+        if (allHeadrooms[i] === this.refs.headroomWrapper) {
+          currentHeadroomIdx = i
+          break
+        }
+      }
+      const lastHeadroomIdx = currentHeadroomIdx >= 0 ? currentHeadroomIdx : allHeadrooms.length - 1
+      for (let j = 1; j <= lastHeadroomIdx; j += 1) {
+        const prevHeadroom = allHeadrooms[j - 1]
+        top += prevHeadroom.getBoundingClientRect().height
+      }
+    }
+
     let innerStyle = {
       position: this.props.disable || this.state.state === 'unfixed' ? 'relative' : 'fixed',
-      top: 0,
+      top: this.state.className.indexOf('--pinned') !== -1 ? top : 0,
       left: 0,
       right: 0,
       zIndex: 1,
