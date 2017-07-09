@@ -8,6 +8,7 @@ const noop = () => {}
 
 export default class Headroom extends Component {
   static propTypes = {
+    className: PropTypes.string,
     parent: PropTypes.func,
     children: PropTypes.any.isRequired,
     disableInlineStyles: PropTypes.bool,
@@ -219,7 +220,7 @@ export default class Headroom extends Component {
   }
 
   render () {
-    const { ...divProps } = this.props
+    const { className: userClassName, ...divProps } = this.props
     delete divProps.onUnpin
     delete divProps.onPin
     delete divProps.onUnfix
@@ -275,8 +276,12 @@ export default class Headroom extends Component {
       height: this.state.height ? this.state.height : null,
     }
 
+    const wrapperClassName = userClassName
+      ? `${userClassName} headroom-wrapper`
+      : 'headroom-wrapper'
+
     return (
-      <div style={wrapperStyles} className="headroom-wrapper">
+      <div style={wrapperStyles} className={wrapperClassName}>
         <div
           ref="inner"
           {...rest}
