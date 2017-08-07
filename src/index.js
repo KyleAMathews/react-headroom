@@ -283,7 +283,7 @@ export default class Headroom extends Component {
     return (
       <div style={wrapperStyles} className={wrapperClassName}>
         <div
-          ref={(inner) => {this.inner = inner}}
+          ref={(inner) => { this.inner = inner }}
           {...rest}
           style={innerStyle}
           className={className}
