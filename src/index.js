@@ -86,7 +86,7 @@ export default class Headroom extends Component {
 
   setHeightOffset = () => {
     this.setState({
-      height: this.refs.inner.offsetHeight,
+      height: this.inner.offsetHeight,
     })
   }
 
@@ -283,7 +283,7 @@ export default class Headroom extends Component {
     return (
       <div style={wrapperStyles} className={wrapperClassName}>
         <div
-          ref="inner"
+          ref={(inner) => {this.inner = inner}}
           {...rest}
           style={innerStyle}
           className={className}
