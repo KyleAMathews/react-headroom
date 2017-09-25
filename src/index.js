@@ -253,7 +253,7 @@ export default class Headroom extends Component {
     delete divProps.downTolerance
     delete divProps.pinStart
 
-    const { style, wrapperStyle, ...rest } = divProps
+    const { style, wrapperStyle, calcHeightOnResize, ...rest } = divProps
 
     let innerStyle = {
       position: this.props.disable || this.state.state === 'unfixed' ? 'relative' : 'fixed',
