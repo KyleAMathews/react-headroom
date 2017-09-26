@@ -252,6 +252,7 @@ export default class Headroom extends Component {
     delete divProps.upTolerance
     delete divProps.downTolerance
     delete divProps.pinStart
+    delete divProps.calcHeightOnResize
 
     const { style, wrapperStyle, ...rest } = divProps
 
