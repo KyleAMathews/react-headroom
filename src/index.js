@@ -99,7 +99,7 @@ export default class Headroom extends Component {
 
   setHeightOffset = () => {
     this.setState({
-      height: this.refs.inner.offsetHeight,
+      height: this.inner.offsetHeight,
     })
     this.resizeTicking = false
   }
@@ -182,6 +182,10 @@ export default class Headroom extends Component {
       raf(this.setHeightOffset)
     }
   }
+
+  captureInnerRef = (node) => {
+    this.inner = node
+  };
 
   unpin = () => {
     this.props.onUnpin()
@@ -305,7 +309,7 @@ export default class Headroom extends Component {
     return (
       <div style={wrapperStyles} className={wrapperClassName}>
         <div
-          ref="inner"
+          ref={this.captureInnerRef}
           {...rest}
           style={innerStyle}
           className={className}
