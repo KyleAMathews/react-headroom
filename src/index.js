@@ -97,9 +97,11 @@ export default class Headroom extends Component {
     this.props.parent().removeEventListener('resize', this.handleResize)
   }
 
+  setRef = ref => (this.inner = ref)
+
   setHeightOffset = () => {
     this.setState({
-      height: this.refs.inner.offsetHeight,
+      height: this.inner.offsetHeight,
     })
     this.resizeTicking = false
   }
@@ -305,7 +307,7 @@ export default class Headroom extends Component {
     return (
       <div style={wrapperStyles} className={wrapperClassName}>
         <div
-          ref="inner"
+          ref={this.setRef}
           {...rest}
           style={innerStyle}
           className={className}
