@@ -84,6 +84,8 @@ export default class Headroom extends Component {
     window.removeEventListener('scroll', this.handleScroll)
   }
 
+  setRef = ref => (this.inner = ref)
+
   setHeightOffset = () => {
     this.setState({
       height: this.inner.offsetHeight,
@@ -283,7 +285,7 @@ export default class Headroom extends Component {
     return (
       <div style={wrapperStyles} className={wrapperClassName}>
         <div
-          ref={(inner) => { this.inner = inner }}
+          ref={this.setRef}
           {...rest}
           style={innerStyle}
           className={className}
