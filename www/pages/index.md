@@ -1,8 +1,13 @@
 [Code on Github](https://github.com/KyleAMathews/react-headroom)
 
-React Headroom is a React Component to hide/show your header on scroll. The header on this site is a living example. When you scroll down, it slides out of view and slides back in when scrolling up.
+React Headroom is a React Component to hide/show your header on scroll. The
+header on this site is a living example. When you scroll down, it slides out of
+view and slides back in when scrolling up.
 
-Fixed headers are nice for persistent navigation but they can also get in the way by taking up valuable vertical screen space. Using this component lets you have your persistent navigation while preserving screen space when the navigation is not needed.
+Fixed headers are nice for persistent navigation but they can also get in the
+way by taking up valuable vertical screen space. Using this component lets you
+have your persistent navigation while preserving screen space when the
+navigation is not needed.
 
 ## Install
 
@@ -17,16 +22,19 @@ Here's an example:
 ```javascript
 <Headroom>
   <h1>You can put anything you'd like inside the Headroom Component</h1>
-</Headroom>
+</Headroom>;
 ```
 
 [See the code for this website.](https://github.com/KyleAMathews/react-headroom/blob/master/www/page-templates/index.js)
 
 ### Overriding animation
 
-The component is intended to be plug 'n play meaning it has sensible defaults for animating the header in and out. If you'd like to override the default animation, you have two options.
+The component is intended to be plug 'n play meaning it has sensible defaults
+for animating the header in and out. If you'd like to override the default
+animation, you have two options.
 
-One option is you can override the default inline styles like the following example:
+One option is you can override the default inline styles like the following
+example:
 
 ```javascript
 <Headroom style={{
@@ -39,7 +47,10 @@ One option is you can override the default inline styles like the following exam
 </Headroom>
 ```
 
-Another option is to use CSS. The component has a `headroom` class as well as a `headroom--pinned` or `headroom--unpinned` depending on its pinned state. As CSS can't override inline styles, first disable the animation styles by passing in the `disableInlineStyles` prop. Then in your CSS do something like:
+Another option is to use CSS. The component has a `headroom` class as well as a
+`headroom--pinned` or `headroom--unpinned` depending on its pinned state. As CSS
+can't override inline styles, first disable the animation styles by passing in
+the `disableInlineStyles` prop. Then in your CSS do something like:
 
 ```javascript
 .headroom {
@@ -65,14 +76,42 @@ Another option is to use CSS. The component has a `headroom` class as well as a 
 }
 ```
 
+#### Specifying custom class names
+
+This component can be used with CSS-in-JS styling solutions like
+[JSS](https://github.com/cssinjs/jss) that specify their own class names by
+passing the `classes` property.
+
+```javascript
+<Headroom
+  disableInlineStyles
+  classes={{
+    main: classes.headroom,
+    unfixed: classes.headroomUnfixed,
+    scrolled: classes.headroomScrolled,
+    pinned: classes.headroomPinned,
+    unpinned: classes.headroomUnpinned
+  }}
+>
+  <h1>This headroom uses custom CSS classes</h1>
+</Headroom>
+```
+
+This way, you can also use multiple headroom components with different stylings on one page.
+
 ### Other props
 
-*   `onPin` — callback called when header is pinned
-*   `onUnpin` — callback called when header is unpinned
-*   `onUnfix` — callback called when header position is no longer fixed
-*   `upTolerance` — scroll tolerance in px when scrolling up before component is pinned
-*   `downTolerance` — scroll tolerance in px when scrolling down before component is pinned
-*   `disable` — disable pinning and unpinning
-*   `wrapperStyle` — pass styles for the wrapper div (this maintains the components vertical space at the top of the page).
-*   `parent` — provide a custom 'parent' element for scroll events. `parent` should be a function which resolves to the desired element.
-*   `pinStart` — height in px where the header should start and stop pinning. Useful when you have another element above Headroom component.
+* `onPin` — callback called when header is pinned
+* `onUnpin` — callback called when header is unpinned
+* `onUnfix` — callback called when header position is no longer fixed
+* `upTolerance` — scroll tolerance in px when scrolling up before component is
+  pinned
+* `downTolerance` — scroll tolerance in px when scrolling down before component
+  is pinned
+* `disable` — disable pinning and unpinning
+* `wrapperStyle` — pass styles for the wrapper div (this maintains the
+  components vertical space at the top of the page).
+* `parent` — provide a custom 'parent' element for scroll events. `parent`
+  should be a function which resolves to the desired element.
+* `pinStart` — height in px where the header should start and stop pinning.
+  Useful when you have another element above Headroom component.

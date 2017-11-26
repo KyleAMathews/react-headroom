@@ -6,8 +6,17 @@ import shouldUpdate from './shouldUpdate'
 
 const noop = () => {}
 
+const defaultClasses = {
+  main: 'headroom',
+  unfixed: 'headroom--unfixed',
+  scrolled: 'headroom--scrolled',
+  unpinned: 'headroom--unpinned',
+  pinned: 'headroom--pinned',
+}
+
 export default class Headroom extends Component {
   static propTypes = {
+    classes: PropTypes.object,
     className: PropTypes.string,
     parent: PropTypes.func,
     children: PropTypes.any.isRequired,
@@ -45,10 +54,11 @@ export default class Headroom extends Component {
     this.lastKnownScrollY = 0
     this.scrollTicking = false
     this.resizeTicking = false
+    this.classes = Object.assign({}, defaultClasses, props.classes)
     this.state = {
       state: 'unfixed',
       translateY: 0,
-      className: 'headroom headroom--unfixed',
+      className: `${this.classes.main} ${this.classes.unfixed}`,
     }
   }
 
@@ -75,6 +85,7 @@ export default class Headroom extends Component {
         this.props.parent().addEventListener('resize', this.handleResize)
       }
     }
+    this.classes = Object.assign({}, defaultClasses, nextProps.classes)
   }
 
   shouldComponentUpdate (nextProps, nextState) {
@@ -190,7 +201,7 @@ export default class Headroom extends Component {
 
     this.setState({
       translateY: '-100%',
-      className: 'headroom headroom--unpinned',
+      className: `${this.classes.main} ${this.classes.unpinned}`,
     }, () => {
       setTimeout(() => {
         this.setState({ state: 'unpinned' })
@@ -203,7 +214,7 @@ export default class Headroom extends Component {
 
     this.setState({
       translateY: 0,
-      className: 'headroom headroom--pinned',
+      className: `${this.classes.main} ${this.classes.pinned}`,
       state: 'pinned',
     })
   }
@@ -213,7 +224,7 @@ export default class Headroom extends Component {
 
     this.setState({
       translateY: 0,
-      className: 'headroom headroom--unfixed',
+      className: `${this.classes.main} ${this.classes.unfixed}`,
       state: 'unfixed',
     })
   }
@@ -255,6 +266,7 @@ export default class Headroom extends Component {
     delete divProps.downTolerance
     delete divProps.pinStart
     delete divProps.calcHeightOnResize
+    delete divProps.classes
 
     const { style, wrapperStyle, ...rest } = divProps
 
