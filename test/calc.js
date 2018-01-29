@@ -9,6 +9,7 @@ describe('shouldUpdate', () => {
     propDefaults = {
       disableInlineStyles: false,
       disable: false,
+      pin: false,
       upTolerance: 0,
       downTolerance: 0,
       offset: 0,
@@ -216,5 +217,25 @@ describe('shouldUpdate', () => {
     }
     const result = shouldUpdate(100, 110, propDefaults, state)
     expect(result.action).to.equal('unpin-snap')
+  })
+
+  it("should return an action of 'pin' if props.pin is set and not pinned, yet", () => {
+    const state = {
+      height: 100,
+      state: 'something',
+    }
+
+    const result = shouldUpdate(100, 110, { ...propDefaults, pin: true }, state)
+    expect(result.action).to.equal('pin')
+  })
+
+  it("should return an action of 'none' if props.pin is set and already pinned", () => {
+    const state = {
+      height: 100,
+      state: 'pinned',
+    }
+
+    const result = shouldUpdate(100, 110, { ...propDefaults, pin: true }, state)
+    expect(result.action).to.equal('none')
   })
 })

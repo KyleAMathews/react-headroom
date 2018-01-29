@@ -72,6 +72,7 @@ Another option is to use CSS. The component has a `headroom` class as well as a 
 *   `onUnfix` — callback called when header position is no longer fixed
 *   `upTolerance` — scroll tolerance in px when scrolling up before component is pinned
 *   `downTolerance` — scroll tolerance in px when scrolling down before component is pinned
+*   `pin` — pins the header so that it is always visible
 *   `disable` — disable pinning and unpinning
 *   `wrapperStyle` — pass styles for the wrapper div (this maintains the components vertical space at the top of the page).
 *   `parent` — provide a custom 'parent' element for scroll events. `parent` should be a function which resolves to the desired element.
