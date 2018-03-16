@@ -107,12 +107,13 @@ export default class Headroom extends Component {
   }
 
   getScrollY = () => {
-    if (this.props.parent() && this.props.parent().pageYOffset !== undefined) {
-      return this.props.parent().pageYOffset
-    } else if (this.props.parent().scrollTop !== undefined) {
-      return this.props.parent().scrollTop
+    const parent = this.props.parent();
+    if (parent && parent.pageYOffset !== undefined) {
+      return parent.pageYOffset;
+    } else if (parent && parent.scrollTop !== undefined) {
+      return parent.scrollTop;
     } else {
-      return (document.documentElement || document.body.parentNode || document.body).scrollTop
+      return (document.documentElement || document.body.parentNode || document.body).scrollTop;
     }
   }
 
