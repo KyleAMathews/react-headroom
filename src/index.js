@@ -107,14 +107,14 @@ export default class Headroom extends Component {
   }
 
   getScrollY = () => {
-    const parent = this.props.parent();
+    const parent = this.props.parent()
     if (parent && parent.pageYOffset !== undefined) {
-      return parent.pageYOffset;
+      return parent.pageYOffset
     } else if (parent && parent.scrollTop !== undefined) {
-      return parent.scrollTop;
-    } else {
-      return (document.documentElement || document.body.parentNode || document.body).scrollTop;
-    }
+      return parent.scrollTop
+    } 
+    
+    return (document.documentElement || document.body.parentNode || document.body).scrollTop    
   }
 
   getViewportHeight = () => (
