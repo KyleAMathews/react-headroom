@@ -133,16 +133,31 @@ export default class Headroom extends Component {
     )
   }
 
-  getElementPhysicalHeight = elm => Math.max(
-    elm.offsetHeight,
-    elm.clientHeight
-  )
+  getElementPhysicalHeight = elm => {
+    let offsetHeight = 0
+    let clientHeight = 0;
 
-  getElementHeight = elm => Math.max(
-    elm.scrollHeight,
-    elm.offsetHeight,
-    elm.clientHeight,
-  )
+    if (elm) {
+      offsetHeight = elm.offsetHeight;
+      clientHeight = elm.clientHeight;
+    }
+
+    return Math.max(offsetHeight, clientHeight);
+  };
+
+  getElementHeight = elm => {
+    let offsetHeight = 0;
+    let clientHeight = 0;
+    let scrollHeight = 0;
+
+    if (elm) {
+      offsetHeight = elm.offsetHeight;
+      clientHeight = elm.clientHeight;
+      scrollHeight = elm.scrollHeight;
+    }
+
+    return Math.max(scrollHeight, offsetHeight, clientHeight);
+  };
 
   getScrollerPhysicalHeight = () => {
     const parent = this.props.parent()
