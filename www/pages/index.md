@@ -50,18 +50,18 @@ Another option is to use CSS. The component has a `headroom` class as well as a 
 }
 .headroom--unfixed {
   position: relative;
-  transform: translateY(0);
+  transform: translate3D(0, 0, 0);
 }
 .headroom--scrolled {
   transition: transform 200ms ease-in-out;
 }
 .headroom--unpinned {
   position: fixed;
-  transform: translateY(-100%);
+  transform: translate3D(0, -100%, 0);
 }
 .headroom--pinned {
   position: fixed;
-  transform: translateY(0%);
+  transform: translate3D(0, 0, 0);
 }
 ```
 
