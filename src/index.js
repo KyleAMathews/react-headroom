@@ -22,6 +22,7 @@ export default class Headroom extends Component {
     pinStart: PropTypes.number,
     style: PropTypes.object,
     calcHeightOnResize: PropTypes.bool,
+    hideLimit: PropTypes.number,
   };
 
   static defaultProps = {
@@ -189,7 +190,7 @@ export default class Headroom extends Component {
     this.props.onUnpin()
 
     this.setState({
-      translateY: '-100%',
+      translateY: this.props.hideLimit ? `${this.props.hideLimit}px` : '-100%',
       className: 'headroom headroom--unpinned',
     }, () => {
       setTimeout(() => {
