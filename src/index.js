@@ -190,7 +190,7 @@ export default class Headroom extends Component {
     this.props.onUnpin()
 
     this.setState({
-      translateY: this.props.hideLimit ? `${this.props.hideLimit}px` : '-100%',
+      translateY: this.props.hideLimit ? `-${this.props.hideLimit}px` : '-100%',
       className: 'headroom headroom--unpinned',
     }, () => {
       setTimeout(() => {
