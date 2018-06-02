@@ -35,7 +35,8 @@ export default class Headroom extends Component {
     onUnfix: noop,
     wrapperStyle: {},
     pinStart: 0,
-    calcHeightOnResize: true,
+	calcHeightOnResize: true,
+	component: 'div'
   };
 
   constructor (props) {
@@ -304,8 +305,9 @@ export default class Headroom extends Component {
       ? `${userClassName} headroom-wrapper`
       : 'headroom-wrapper'
 
+	const {component} = this.props;
     return (
-      <div style={wrapperStyles} className={wrapperClassName}>
+	  <component style={wrapperStyles} className={wrapperClassName}>		
         <div
           ref={this.setRef}
           {...rest}
@@ -314,7 +316,7 @@ export default class Headroom extends Component {
         >
           {this.props.children}
         </div>
-      </div>
+      </component>
     )
   }
 }
