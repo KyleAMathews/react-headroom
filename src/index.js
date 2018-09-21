@@ -261,9 +261,9 @@ export default class Headroom extends Component {
       left: 0,
       right: 0,
       zIndex: 1,
-      WebkitTransform: `translateY(${this.state.translateY})`,
-      MsTransform: `translateY(${this.state.translateY})`,
-      transform: `translateY(${this.state.translateY})`,
+      WebkitTransform: `translate3D(0, ${this.state.translateY}, 0)`,
+      MsTransform: `translate3D(0, ${this.state.translateY}, 0)`,
+      transform: `translate3D(0, ${this.state.translateY}, 0)`,
     }
 
     let className = this.state.className
