@@ -191,10 +191,7 @@ export default class Headroom extends Component {
     this.setState({
       translateY: '-100%',
       className: 'headroom headroom--unpinned',
-    }, () => {
-      setTimeout(() => {
-        this.setState({ state: 'unpinned' })
-      }, 0)
+      state: 'unpinned',
     })
   }
 
