@@ -194,6 +194,6 @@ describe('shouldUpdate', () => {
       state: 'unfixed',
     }
     const result = shouldUpdate(100, 110, propDefaults, state)
-    expect(result.action).to.equal('unpin')
+    expect(result.action).to.equal('unpin-snap')
   })
 })
