@@ -23,7 +23,7 @@ export default class Headroom extends Component {
     style: PropTypes.object,
     calcHeightOnResize: PropTypes.bool,
     component: PropTypes.string,
-  }
+  };
 
   static defaultProps = {
     parent: () => window,
@@ -38,7 +38,7 @@ export default class Headroom extends Component {
     pinStart: 0,
     calcHeightOnResize: true,
     component: 'div',
-  }
+  };
 
   constructor (props) {
     super(props)
