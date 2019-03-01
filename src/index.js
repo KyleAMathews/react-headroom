@@ -22,7 +22,8 @@ export default class Headroom extends Component {
     pinStart: PropTypes.number,
     style: PropTypes.object,
     calcHeightOnResize: PropTypes.bool,
-  };
+    component: PropTypes.string,
+  }
 
   static defaultProps = {
     parent: () => window,
@@ -36,7 +37,8 @@ export default class Headroom extends Component {
     wrapperStyle: {},
     pinStart: 0,
     calcHeightOnResize: true,
-  };
+    component: 'div',
+  }
 
   constructor (props) {
     super(props)
@@ -78,10 +80,7 @@ export default class Headroom extends Component {
   }
 
   shouldComponentUpdate (nextProps, nextState) {
-    return (
-      !shallowequal(this.props, nextProps) ||
-      !shallowequal(this.state, nextState)
-    )
+    return !shallowequal(this.props, nextProps) || !shallowequal(this.state, nextState)
   }
 
   componentDidUpdate (prevProps) {
@@ -116,38 +115,31 @@ export default class Headroom extends Component {
     }
   }
 
-  getViewportHeight = () => (
-    window.innerHeight
-      || document.documentElement.clientHeight
-      || document.body.clientHeight
-  )
+  getViewportHeight = () =>
+    window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight
 
   getDocumentHeight = () => {
     const body = document.body
     const documentElement = document.documentElement
 
     return Math.max(
-      body.scrollHeight, documentElement.scrollHeight,
-      body.offsetHeight, documentElement.offsetHeight,
-      body.clientHeight, documentElement.clientHeight
+      body.scrollHeight,
+      documentElement.scrollHeight,
+      body.offsetHeight,
+      documentElement.offsetHeight,
+      body.clientHeight,
+      documentElement.clientHeight
     )
   }
 
-  getElementPhysicalHeight = elm => Math.max(
-    elm.offsetHeight,
-    elm.clientHeight
-  )
+  getElementPhysicalHeight = elm => Math.max(elm.offsetHeight, elm.clientHeight)
 
-  getElementHeight = elm => Math.max(
-    elm.scrollHeight,
-    elm.offsetHeight,
-    elm.clientHeight,
-  )
+  getElementHeight = elm => Math.max(elm.scrollHeight, elm.offsetHeight, elm.clientHeight)
 
   getScrollerPhysicalHeight = () => {
     const parent = this.props.parent()
 
-    return (parent === window || parent === document.body)
+    return parent === window || parent === document.body
       ? this.getViewportHeight()
       : this.getElementPhysicalHeight(parent)
   }
@@ -155,7 +147,7 @@ export default class Headroom extends Component {
   getScrollerHeight = () => {
     const parent = this.props.parent()
 
-    return (parent === window || parent === document.body)
+    return parent === window || parent === document.body
       ? this.getDocumentHeight()
       : this.getElementHeight(parent)
   }
@@ -317,17 +309,14 @@ export default class Headroom extends Component {
       ? `${userClassName} headroom-wrapper`
       : 'headroom-wrapper'
 
+    const { component } = this.props
+
     return (
-      <div style={wrapperStyles} className={wrapperClassName}>
-        <div
-          ref={this.setRef}
-          {...rest}
-          style={innerStyle}
-          className={className}
-        >
+      <component style={wrapperStyles} className={wrapperClassName}>
+        <div ref={this.setRef} {...rest} style={innerStyle} className={className}>
           {this.props.children}
         </div>
-      </div>
+      </component>
     )
   }
 }
