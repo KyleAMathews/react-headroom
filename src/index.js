@@ -191,6 +191,18 @@ export default class Headroom extends Component {
     this.setState({
       translateY: '-100%',
       className: 'headroom headroom--unpinned',
+      animation: true,
+      state: 'unpinned',
+    })
+  }
+
+  unpinSnap = () => {
+    this.props.onUnpin()
+
+    this.setState({
+      translateY: '-100%',
+      className: 'headroom headroom--unpinned headroom-disable-animation',
+      animation: false,
       state: 'unpinned',
     })
   }
@@ -201,6 +213,7 @@ export default class Headroom extends Component {
     this.setState({
       translateY: 0,
       className: 'headroom headroom--pinned',
+      animation: true,
       state: 'pinned',
     })
   }
@@ -210,7 +223,8 @@ export default class Headroom extends Component {
 
     this.setState({
       translateY: 0,
-      className: 'headroom headroom--unfixed',
+      className: 'headroom headroom--unfixed headroom-disable-animation',
+      animation: false,
       state: 'unfixed',
     })
   }
@@ -230,6 +244,8 @@ export default class Headroom extends Component {
         this.pin()
       } else if (action === 'unpin') {
         this.unpin()
+      } else if (action === 'unpin-snap') {
+        this.unpinSnap()
       } else if (action === 'unfix') {
         this.unfix()
       }
@@ -272,7 +288,7 @@ export default class Headroom extends Component {
     // negative transform when transitioning from 'unfixed' to 'unpinned'.
     // If we don't do this, the header will flash into view temporarily
     // while it transitions from 0 — -100%.
-    if (this.state.state !== 'unfixed') {
+    if (this.state.animation) {
       innerStyle = {
         ...innerStyle,
         WebkitTransition: 'all .2s ease-in-out',
