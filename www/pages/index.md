@@ -76,3 +76,4 @@ Another option is to use CSS. The component has a `headroom` class as well as a 
 *   `wrapperStyle` — pass styles for the wrapper div (this maintains the components vertical space at the top of the page).
 *   `parent` — provide a custom 'parent' element for scroll events. `parent` should be a function which resolves to the desired element.
 *   `pinStart` — height in px where the header should start and stop pinning. Useful when you have another element above Headroom component.
+*   `stickySubheaderStart` - height in px of the main header that should not be sticky (only provide this value if you want a sticky subheader)
