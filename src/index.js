@@ -22,7 +22,7 @@ export default class Headroom extends Component {
     pinStart: PropTypes.number,
     style: PropTypes.object,
     calcHeightOnResize: PropTypes.bool,
-    stickySubheaderStart: PropTypes.number
+    stickySubheaderStart: PropTypes.number,
   };
 
   static defaultProps = {
@@ -37,7 +37,7 @@ export default class Headroom extends Component {
     wrapperStyle: {},
     pinStart: 0,
     calcHeightOnResize: true,
-    stickySubheaderStart: 0
+    stickySubheaderStart: 0,
   };
 
   constructor (props) {
@@ -188,7 +188,7 @@ export default class Headroom extends Component {
   }
 
   unpin = () => {
-    const {onUnpin, stickySubheaderStart} = this.props
+    const { onUnpin, stickySubheaderStart } = this.props
     onUnpin()
 
     this.setState({
@@ -200,7 +200,7 @@ export default class Headroom extends Component {
   }
 
   unpinSnap = () => {
-    const {onUnpin, stickySubheaderStart} = this.props
+    const { onUnpin, stickySubheaderStart } = this.props
     onUnpin()
 
     this.setState({
