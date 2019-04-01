@@ -2,6 +2,7 @@ import React, { Component } from 'react' // eslint-disable-line import/no-unreso
 import PropTypes from 'prop-types'
 import shallowequal from 'shallowequal'
 import raf from 'raf'
+import detectPassiveEvents from 'detect-passive-events'
 import shouldUpdate from './shouldUpdate'
 
 const noop = () => {}
@@ -45,6 +46,7 @@ export default class Headroom extends Component {
     this.lastKnownScrollY = 0
     this.scrollTicking = false
     this.resizeTicking = false
+    this.eventListenerOptions = null
     this.state = {
       state: 'unfixed',
       translateY: 0,
@@ -53,12 +55,16 @@ export default class Headroom extends Component {
   }
 
   componentDidMount () {
+    if (this.eventListenerOptions === null) {
+      detectPassiveEvents.update()
+      this.eventListenerOptions = detectPassiveEvents.hasSupport ? { capture: false, passive: true } : false
+    }
     this.setHeightOffset()
     if (!this.props.disable) {
-      this.props.parent().addEventListener('scroll', this.handleScroll)
+      this.props.parent().addEventListener('scroll', this.handleScroll, this.eventListenerOptions)
 
       if (this.props.calcHeightOnResize) {
-        this.props.parent().addEventListener('resize', this.handleResize)
+        this.props.parent().addEventListener('resize', this.handleResize, this.eventListenerOptions)
       }
     }
   }
@@ -66,13 +72,13 @@ export default class Headroom extends Component {
   componentWillReceiveProps (nextProps) {
     if (nextProps.disable && !this.props.disable) {
       this.unfix()
-      this.props.parent().removeEventListener('scroll', this.handleScroll)
-      this.props.parent().removeEventListener('resize', this.handleResize)
+      this.props.parent().removeEventListener('scroll', this.handleScroll, this.eventListenerOptions)
+      this.props.parent().removeEventListener('resize', this.handleResize, this.eventListenerOptions)
     } else if (!nextProps.disable && this.props.disable) {
-      this.props.parent().addEventListener('scroll', this.handleScroll)
+      this.props.parent().addEventListener('scroll', this.handleScroll, this.eventListenerOptions)
 
       if (this.props.calcHeightOnResize) {
-        this.props.parent().addEventListener('resize', this.handleResize)
+        this.props.parent().addEventListener('resize', this.handleResize, this.eventListenerOptions)
       }
     }
   }
