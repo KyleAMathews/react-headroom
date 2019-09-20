@@ -38,6 +38,19 @@ export default class Headroom extends Component {
     calcHeightOnResize: true,
   };
 
+  static getDerivedStateFromProps (props, state) {
+    if (props.disable && state.state !== 'unfixed') {
+      return {
+        translateY: 0,
+        className: 'headroom headroom--unfixed headroom-disable-animation',
+        animation: false,
+        state: 'unfixed',
+      }
+    }
+
+    return null
+  }
+
   constructor (props) {
     super(props)
     // Class variables.
@@ -63,20 +76,6 @@ export default class Headroom extends Component {
     }
   }
 
-  componentWillReceiveProps (nextProps) {
-    if (nextProps.disable && !this.props.disable) {
-      this.unfix()
-      this.props.parent().removeEventListener('scroll', this.handleScroll)
-      this.props.parent().removeEventListener('resize', this.handleResize)
-    } else if (!nextProps.disable && this.props.disable) {
-      this.props.parent().addEventListener('scroll', this.handleScroll)
-
-      if (this.props.calcHeightOnResize) {
-        this.props.parent().addEventListener('resize', this.handleResize)
-      }
-    }
-  }
-
   shouldComponentUpdate (nextProps, nextState) {
     return (
       !shallowequal(this.props, nextProps) ||
@@ -84,10 +83,26 @@ export default class Headroom extends Component {
     )
   }
 
-  componentDidUpdate (prevProps) {
+  componentDidUpdate (prevProps, prevState) {
     // If children have changed, remeasure height.
     if (prevProps.children !== this.props.children) {
       this.setHeightOffset()
+    }
+
+    // Add/remove event listeners when re-enabled/disabled
+    if (!prevProps.disable && this.props.disable) {
+      this.props.parent().removeEventListener('scroll', this.handleScroll)
+      this.props.parent().removeEventListener('resize', this.handleResize)
+
+      if (prevState.state !== 'unfixed' && this.state.state === 'unfixed') {
+        this.props.onUnfix()
+      }
+    } else if (prevProps.disable && !this.props.disable) {
+      this.props.parent().addEventListener('scroll', this.handleScroll)
+
+      if (this.props.calcHeightOnResize) {
+        this.props.parent().addEventListener('resize', this.handleResize)
+      }
     }
   }
 
