@@ -57,7 +57,9 @@ export default class Headroom extends Component {
   componentDidMount () {
     if (this.eventListenerOptions === null) {
       detectPassiveEvents.update()
-      this.eventListenerOptions = detectPassiveEvents.hasSupport ? { capture: false, passive: true } : false
+      this.eventListenerOptions = detectPassiveEvents.hasSupport
+        ? { capture: false, passive: true }
+        : false
     }
     this.setHeightOffset()
     if (!this.props.disable) {
