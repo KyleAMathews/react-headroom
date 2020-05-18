@@ -324,8 +324,8 @@ export default class Headroom extends Component {
     }
 
     const wrapperStyles = {
-      ...wrapperStyle,
       height: this.state.height ? this.state.height : null,
+      ...wrapperStyle,
     }
 
     const wrapperClassName = userClassName
