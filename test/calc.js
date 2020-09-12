@@ -5,15 +5,6 @@ import useHeadroom from "../src/useHeadroom";
 
 import { renderHook } from "@testing-library/react-hooks";
 
-test("should show the nav", () => {
-  const { result, rerender } = renderHook(() => useheadroom());
-  rerender({ initialValue: 10 });
-  // act(() => {
-  //   result.current.reset();
-  // });
-  expect(result).toBe(false);
-});
-
 let propDefaults = {};
 
 describe("shouldUpdate", () => {
