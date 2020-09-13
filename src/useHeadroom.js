@@ -1,7 +1,7 @@
 import React from "react";
 
 export default ({ onPin, onUnpin }) => {
-  const [scroll, setScroll] = React.useState > 0;
+  const [scroll, setScroll] = React.useState(0);
 
   // Tracking scroll value
   React.useEffect(() => {
@@ -24,5 +24,5 @@ export default ({ onPin, onUnpin }) => {
     scrollRef.current.scroll = scroll;
   }, [scroll]);
 
-  return scrollRef.current.scroll <= scroll;
+  return scrollRef.current.scroll <= scroll || scroll === 0;
 };
