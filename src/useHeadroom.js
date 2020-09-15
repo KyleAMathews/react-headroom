@@ -24,5 +24,5 @@ export default ({ onPin, onUnpin }) => {
     scrollRef.current.scroll = scroll;
   }, [scroll]);
 
-  return scrollRef.current.scroll <= scroll || scroll === 0;
+  return scrollRef.current.scroll > scroll || scroll === 0;
 };
