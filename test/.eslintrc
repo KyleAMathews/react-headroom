@@ -1,9 +1,9 @@
 {
-  "extends" : "../.eslintrc",
-  "env"     : {
-    "mocha" : true
+  "extends": "../.eslintrc",
+  "env": {
+    "mocha": true
   },
-  "globals" : {
-    "describe": true,
+  "globals": {
+    "describe": true
   }
 }

@@ -21,7 +21,7 @@ export default function (
       scrollDirection,
       distanceScrolled,
     }
-  // We're unfixed and headed down. Carry on.
+    // We're unfixed and headed down. Carry on.
   } else if (
     currentScrollY <= state.height &&
     scrollDirection === 'down' &&
@@ -33,7 +33,7 @@ export default function (
       distanceScrolled,
     }
   } else if (
-    currentScrollY > (state.height + props.pinStart) &&
+    currentScrollY > state.height + props.pinStart &&
     scrollDirection === 'down' &&
     state.state === 'unfixed'
   ) {
@@ -42,19 +42,20 @@ export default function (
       scrollDirection,
       distanceScrolled,
     }
-  // We're past the header and scrolling down.
-  // We transition to "unpinned" if necessary.
+    // We're past the header and scrolling down.
+    // We transition to "unpinned" if necessary.
   } else if (
     scrollDirection === 'down' &&
     ['pinned', 'unfixed'].indexOf(state.state) >= 0 &&
-    currentScrollY > (state.height + props.pinStart) && distanceScrolled > props.downTolerance
+    currentScrollY > state.height + props.pinStart &&
+    distanceScrolled > props.downTolerance
   ) {
     return {
       action: 'unpin',
       scrollDirection,
       distanceScrolled,
     }
-  // We're scrolling up, we transition to "pinned"
+    // We're scrolling up, we transition to "pinned"
   } else if (
     scrollDirection === 'up' &&
     distanceScrolled > props.upTolerance &&
@@ -65,8 +66,8 @@ export default function (
       scrollDirection,
       distanceScrolled,
     }
-  // We're scrolling up, and inside the header.
-  // We transition to pin regardless of upTolerance
+    // We're scrolling up, and inside the header.
+    // We transition to pin regardless of upTolerance
   } else if (
     scrollDirection === 'up' &&
     currentScrollY <= state.height &&
