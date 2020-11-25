@@ -107,9 +107,11 @@ export default class Headroom extends Component {
   }
 
   componentWillUnmount () {
-    this.props.parent().removeEventListener('scroll', this.handleScroll)
+    if (this.props.parent()) {
+      this.props.parent().removeEventListener('scroll', this.handleScroll)
+      this.props.parent().removeEventListener('resize', this.handleResize)
+    }
     window.removeEventListener('scroll', this.handleScroll)
-    this.props.parent().removeEventListener('resize', this.handleResize)
   }
 
   setRef = ref => (this.inner = ref)
