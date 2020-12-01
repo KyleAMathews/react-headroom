@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import shallowequal from 'shallowequal'
 import raf from 'raf'
 import shouldUpdate from './shouldUpdate'
+import supportsPassiveEvents from './supportsPassiveEvents'
 
 const noop = () => {}
 
@@ -58,6 +59,7 @@ export default class Headroom extends Component {
     this.lastKnownScrollY = 0
     this.scrollTicking = false
     this.resizeTicking = false
+    this.eventListenerOptions = false
     this.state = {
       state: 'unfixed',
       translateY: 0,
@@ -67,11 +69,28 @@ export default class Headroom extends Component {
 
   componentDidMount () {
     this.setHeightOffset()
+
+    this.eventListenerOptions = supportsPassiveEvents()
+      ? { passive: true, capture: false }
+      : false
+
     if (!this.props.disable) {
-      this.props.parent().addEventListener('scroll', this.handleScroll)
+      this.props
+        .parent()
+        .addEventListener(
+          'scroll',
+          this.handleScroll,
+          this.eventListenerOptions
+        )
 
       if (this.props.calcHeightOnResize) {
-        this.props.parent().addEventListener('resize', this.handleResize)
+        this.props
+          .parent()
+          .addEventListener(
+            'resize',
+            this.handleResize,
+            this.eventListenerOptions
+          )
       }
     }
   }
@@ -91,27 +110,67 @@ export default class Headroom extends Component {
 
     // Add/remove event listeners when re-enabled/disabled
     if (!prevProps.disable && this.props.disable) {
-      this.props.parent().removeEventListener('scroll', this.handleScroll)
-      this.props.parent().removeEventListener('resize', this.handleResize)
+      this.props
+        .parent()
+        .removeEventListener(
+          'scroll',
+          this.handleScroll,
+          this.eventListenerOptions
+        )
+      this.props
+        .parent()
+        .removeEventListener(
+          'resize',
+          this.handleResize,
+          this.eventListenerOptions
+        )
 
       if (prevState.state !== 'unfixed' && this.state.state === 'unfixed') {
         this.props.onUnfix()
       }
     } else if (prevProps.disable && !this.props.disable) {
-      this.props.parent().addEventListener('scroll', this.handleScroll)
+      this.props
+        .parent()
+        .addEventListener(
+          'scroll',
+          this.handleScroll,
+          this.eventListenerOptions
+        )
 
       if (this.props.calcHeightOnResize) {
-        this.props.parent().addEventListener('resize', this.handleResize)
+        this.props
+          .parent()
+          .addEventListener(
+            'resize',
+            this.handleResize,
+            this.eventListenerOptions
+          )
       }
     }
   }
 
   componentWillUnmount () {
     if (this.props.parent()) {
-      this.props.parent().removeEventListener('scroll', this.handleScroll)
-      this.props.parent().removeEventListener('resize', this.handleResize)
+      this.props
+        .parent()
+        .removeEventListener(
+          'scroll',
+          this.handleScroll,
+          this.eventListenerOptions
+        )
+      this.props
+        .parent()
+        .removeEventListener(
+          'resize',
+          this.handleResize,
+          this.eventListenerOptions
+        )
     }
-    window.removeEventListener('scroll', this.handleScroll)
+    window.removeEventListener(
+      'scroll',
+      this.handleScroll,
+      this.eventListenerOptions
+    )
   }
 
   setRef = ref => (this.inner = ref)
