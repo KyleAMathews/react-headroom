@@ -23,6 +23,7 @@ export default class Headroom extends Component {
     pinStart: PropTypes.number,
     style: PropTypes.object,
     calcHeightOnResize: PropTypes.bool,
+    tag: PropTypes.string,
   };
 
   static defaultProps = {
@@ -37,6 +38,7 @@ export default class Headroom extends Component {
     wrapperStyle: {},
     pinStart: 0,
     calcHeightOnResize: true,
+    tag: 'div',
   };
 
   static getDerivedStateFromProps (props, state) {
@@ -393,8 +395,10 @@ export default class Headroom extends Component {
       ? `${userClassName} headroom-wrapper`
       : 'headroom-wrapper'
 
+    const { tag: Tag } = this.props
+
     return (
-      <div style={wrapperStyles} className={wrapperClassName}>
+      <Tag style={wrapperStyles} className={wrapperClassName}>
         <div
           ref={this.setRef}
           {...rest}
@@ -403,7 +407,7 @@ export default class Headroom extends Component {
         >
           {this.props.children}
         </div>
-      </div>
+      </Tag>
     )
   }
 }
