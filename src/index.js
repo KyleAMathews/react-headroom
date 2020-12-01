@@ -334,7 +334,7 @@ export default class Headroom extends Component {
   }
 
   render () {
-    const { className: userClassName, ...divProps } = this.props
+    const { className: userClassName, tag: Tag, ...divProps } = this.props
     delete divProps.onUnpin
     delete divProps.onPin
     delete divProps.onUnfix
@@ -394,8 +394,6 @@ export default class Headroom extends Component {
     const wrapperClassName = userClassName
       ? `${userClassName} headroom-wrapper`
       : 'headroom-wrapper'
-
-    const { tag: Tag } = this.props
 
     return (
       <Tag style={wrapperStyles} className={wrapperClassName}>
