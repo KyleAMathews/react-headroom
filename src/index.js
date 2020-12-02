@@ -24,7 +24,7 @@ export default class Headroom extends Component {
     style: PropTypes.object,
     calcHeightOnResize: PropTypes.bool,
     tag: PropTypes.string,
-  };
+  }
 
   static defaultProps = {
     parent: () => window,
@@ -39,9 +39,9 @@ export default class Headroom extends Component {
     pinStart: 0,
     calcHeightOnResize: true,
     tag: 'div',
-  };
+  }
 
-  static getDerivedStateFromProps (props, state) {
+  static getDerivedStateFromProps(props, state) {
     if (props.disable && state.state !== 'unfixed') {
       return {
         translateY: 0,
@@ -54,7 +54,7 @@ export default class Headroom extends Component {
     return null
   }
 
-  constructor (props) {
+  constructor(props) {
     super(props)
     // Class variables.
     this.currentScrollY = 0
@@ -69,7 +69,7 @@ export default class Headroom extends Component {
     }
   }
 
-  componentDidMount () {
+  componentDidMount() {
     this.setHeightOffset()
 
     this.eventListenerOptions = supportsPassiveEvents()
@@ -97,14 +97,14 @@ export default class Headroom extends Component {
     }
   }
 
-  shouldComponentUpdate (nextProps, nextState) {
+  shouldComponentUpdate(nextProps, nextState) {
     return (
       !shallowequal(this.props, nextProps) ||
       !shallowequal(this.state, nextState)
     )
   }
 
-  componentDidUpdate (prevProps, prevState) {
+  componentDidUpdate(prevProps, prevState) {
     // If children have changed, remeasure height.
     if (prevProps.children !== this.props.children) {
       this.setHeightOffset()
@@ -151,7 +151,7 @@ export default class Headroom extends Component {
     }
   }
 
-  componentWillUnmount () {
+  componentWillUnmount() {
     if (this.props.parent()) {
       this.props
         .parent()
@@ -190,42 +190,42 @@ export default class Headroom extends Component {
     } else if (this.props.parent().scrollTop !== undefined) {
       return this.props.parent().scrollTop
     } else {
-      return (document.documentElement || document.body.parentNode || document.body).scrollTop
+      return (
+        document.documentElement ||
+        document.body.parentNode ||
+        document.body
+      ).scrollTop
     }
   }
 
-  getViewportHeight = () => (
-    window.innerHeight
-      || document.documentElement.clientHeight
-      || document.body.clientHeight
-  )
+  getViewportHeight = () =>
+    window.innerHeight ||
+    document.documentElement.clientHeight ||
+    document.body.clientHeight
 
   getDocumentHeight = () => {
     const body = document.body
     const documentElement = document.documentElement
 
     return Math.max(
-      body.scrollHeight, documentElement.scrollHeight,
-      body.offsetHeight, documentElement.offsetHeight,
-      body.clientHeight, documentElement.clientHeight
+      body.scrollHeight,
+      documentElement.scrollHeight,
+      body.offsetHeight,
+      documentElement.offsetHeight,
+      body.clientHeight,
+      documentElement.clientHeight
     )
   }
 
-  getElementPhysicalHeight = elm => Math.max(
-    elm.offsetHeight,
-    elm.clientHeight
-  )
+  getElementPhysicalHeight = elm => Math.max(elm.offsetHeight, elm.clientHeight)
 
-  getElementHeight = elm => Math.max(
-    elm.scrollHeight,
-    elm.offsetHeight,
-    elm.clientHeight,
-  )
+  getElementHeight = elm =>
+    Math.max(elm.scrollHeight, elm.offsetHeight, elm.clientHeight)
 
   getScrollerPhysicalHeight = () => {
     const parent = this.props.parent()
 
-    return (parent === window || parent === document.body)
+    return parent === window || parent === document.body
       ? this.getViewportHeight()
       : this.getElementPhysicalHeight(parent)
   }
@@ -233,12 +233,12 @@ export default class Headroom extends Component {
   getScrollerHeight = () => {
     const parent = this.props.parent()
 
-    return (parent === window || parent === document.body)
+    return parent === window || parent === document.body
       ? this.getDocumentHeight()
       : this.getElementHeight(parent)
   }
 
-  isOutOfBound = (currentScrollY) => {
+  isOutOfBound = currentScrollY => {
     const pastTop = currentScrollY < 0
 
     const scrollerPhysicalHeight = this.getScrollerPhysicalHeight()
@@ -333,7 +333,7 @@ export default class Headroom extends Component {
     this.scrollTicking = false
   }
 
-  render () {
+  render() {
     const { className: userClassName, tag: Tag, ...divProps } = this.props
     delete divProps.onUnpin
     delete divProps.onPin
@@ -350,7 +350,10 @@ export default class Headroom extends Component {
     const { style, wrapperStyle, ...rest } = divProps
 
     let innerStyle = {
-      position: this.props.disable || this.state.state === 'unfixed' ? 'relative' : 'fixed',
+      position:
+        this.props.disable || this.state.state === 'unfixed'
+          ? 'relative'
+          : 'fixed',
       top: 0,
       left: 0,
       right: 0,

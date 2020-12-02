@@ -24,12 +24,14 @@
     "eslint": "^3.8.0",
     "eslint-config-airbnb": "^12.0.0",
     "eslint-config-airbnb-base": "^9.0.0",
+    "eslint-config-prettier": "^6.13.0",
     "eslint-plugin-import": "^2.0.1",
     "eslint-plugin-jsx-a11y": "^2.2.3",
     "eslint-plugin-react": "^6.4.1",
     "mocha": "^3.1.2",
     "mocha-unfunk-reporter": "^0.4.0",
-    "pre-commit": "^1.0.5"
+    "pre-commit": "^1.0.5",
+    "prettier": "2.1.2"
   },
   "directories": {
     "example": "examples"
@@ -57,6 +59,7 @@
     "watch": "./node_modules/.bin/webpack-dev-server --hot",
     "publish-patch": "npm run build && npm version patch && npm publish; git push; git push --tags",
     "lint": "eslint --ignore-path .gitignore src/*",
-    "lint:fix": "eslint --ignore-path .gitignore . --fix"
+    "lint:fix": "eslint --ignore-path .gitignore . --fix",
+    "format": "prettier --config .prettierrc --write 'src/**/*.{js,jsx}'"
   }
 }
