@@ -303,7 +303,10 @@ export default class Headroom extends Component {
       translateY: 0,
       className: 'headroom headroom--unfixed headroom-disable-animation',
       animation: false,
-      state: 'unfixed',
+    }, () => {
+      setTimeout(() => {
+        this.setState({ state: 'unfixed' })
+      }, 0)
     })
   }
 
