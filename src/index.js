@@ -5,6 +5,7 @@ import raf from 'raf'
 import shouldUpdate from './shouldUpdate'
 import supportsPassiveEvents from './supportsPassiveEvents'
 
+export { default as useHeadroom } from "./useHeadroom";
 const noop = () => {}
 
 export default class Headroom extends Component {
