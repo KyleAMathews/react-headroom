@@ -18,7 +18,7 @@ export default class Headroom extends Component {
     downTolerance: PropTypes.number,
     onPin: PropTypes.func,
     onUnpin: PropTypes.func,
-    onUnfix: PropTypes.func,
+    onFix: PropTypes.func,
     wrapperStyle: PropTypes.object,
     pinStart: PropTypes.number,
     style: PropTypes.object,
@@ -34,7 +34,7 @@ export default class Headroom extends Component {
     downTolerance: 0,
     onPin: noop,
     onUnpin: noop,
-    onUnfix: noop,
+    onFix: noop,
     wrapperStyle: {},
     pinStart: 0,
     calcHeightOnResize: true,
@@ -128,7 +128,7 @@ export default class Headroom extends Component {
         )
 
       if (prevState.state !== 'unfixed' && this.state.state === 'unfixed') {
-        this.props.onUnfix()
+        this.props.onFix()
       }
     } else if (prevProps.disable && !this.props.disable) {
       this.props
@@ -297,7 +297,7 @@ export default class Headroom extends Component {
   }
 
   unfix = () => {
-    this.props.onUnfix()
+    this.props.onFix()
 
     this.setState({
       translateY: 0,
@@ -340,7 +340,7 @@ export default class Headroom extends Component {
     const { className: userClassName, tag: Tag, ...divProps } = this.props
     delete divProps.onUnpin
     delete divProps.onPin
-    delete divProps.onUnfix
+    delete divProps.onFix
     delete divProps.disableInlineStyles
     delete divProps.disable
     delete divProps.parent
