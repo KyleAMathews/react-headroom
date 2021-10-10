@@ -14,6 +14,7 @@ export default class Headroom extends Component {
     children: PropTypes.any.isRequired,
     disableInlineStyles: PropTypes.bool,
     disable: PropTypes.bool,
+    pin: PropTypes.bool,
     upTolerance: PropTypes.number,
     downTolerance: PropTypes.number,
     onPin: PropTypes.func,
@@ -30,6 +31,7 @@ export default class Headroom extends Component {
     parent: () => window,
     disableInlineStyles: false,
     disable: false,
+    pin: false,
     upTolerance: 5,
     downTolerance: 0,
     onPin: noop,
@@ -148,6 +150,10 @@ export default class Headroom extends Component {
             this.eventListenerOptions
           )
       }
+    }
+    
+    if (prevProps.pin !== this.props.pin) {
+      this.handleScroll()
     }
   }
 
@@ -343,6 +349,7 @@ export default class Headroom extends Component {
     delete divProps.onUnfix
     delete divProps.disableInlineStyles
     delete divProps.disable
+    delete divProps.pin
     delete divProps.parent
     delete divProps.children
     delete divProps.upTolerance
