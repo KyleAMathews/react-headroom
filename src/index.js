@@ -61,8 +61,8 @@ export default class Headroom extends Component {
     // Class variables.
     this.currentScrollY = 0
     this.lastKnownScrollY = 0
-    this.scrollTicking = false
-    this.resizeTicking = false
+    this.scrollHandler = undefined
+    this.resizeHandler = undefined
     this.eventListenerOptions = false
     this.state = {
       state: 'unfixed',
@@ -179,6 +179,12 @@ export default class Headroom extends Component {
       this.handleScroll,
       this.eventListenerOptions
     )
+    if (this.scrollHandler) {
+      raf.cancel(this.scrollHandler)
+    }
+    if (this.resizeHandler) {
+      raf.cancel(this.resizeHandler)
+    }
   }
 
   setRef = ref => (this.inner = ref)
@@ -187,7 +193,7 @@ export default class Headroom extends Component {
     this.setState({
       height: this.inner ? this.inner.offsetHeight : '',
     })
-    this.resizeTicking = false
+    this.resizeHandler = undefined
   }
 
   getScrollY = () => {
@@ -256,16 +262,14 @@ export default class Headroom extends Component {
   }
 
   handleScroll = () => {
-    if (!this.scrollTicking) {
-      this.scrollTicking = true
-      raf(this.update)
+    if (!this.scrollHandler) {
+      this.scrollHandler = raf(this.update)
     }
   }
 
   handleResize = () => {
-    if (!this.resizeTicking) {
-      this.resizeTicking = true
-      raf(this.setHeightOffset)
+    if (!this.resizeHandler) {
+      this.resizeHandler = raf(this.setHeightOffset)
     }
   }
 
@@ -339,7 +343,7 @@ export default class Headroom extends Component {
     }
 
     this.lastKnownScrollY = this.currentScrollY
-    this.scrollTicking = false
+    this.scrollHandler = undefined
   }
 
   render() {
