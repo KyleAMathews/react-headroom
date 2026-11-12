@@ -32,3 +32,6 @@ public
 node_modules/
 .intermediate-representation/
 www/.cache/
+
+# oracle gap check output
+.oracle-gaps/

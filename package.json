@@ -7,31 +7,28 @@
     "url": "https://github.com/KyleAMathews/react-headroom/issues"
   },
   "dependencies": {
-    "prop-types": "^15.5.8",
     "raf": "^3.3.0",
     "shallowequal": "^1.1.0"
   },
   "devDependencies": {
-    "babel-cli": "^6.16.0",
-    "babel-core": "^6.17.0",
-    "babel-eslint": "^7.0.0",
-    "babel-loader": "^6.2.5",
-    "babel-plugin-transform-undefined-to-void": "^6.8.0",
-    "babel-preset-es2015": "^6.16.0",
-    "babel-preset-react": "^6.16.0",
-    "babel-preset-stage-1": "^6.16.0",
-    "chai": "^3.5.0",
-    "eslint": "^3.8.0",
-    "eslint-config-airbnb": "^12.0.0",
-    "eslint-config-airbnb-base": "^9.0.0",
-    "eslint-config-prettier": "^6.13.0",
-    "eslint-plugin-import": "^2.0.1",
-    "eslint-plugin-jsx-a11y": "^2.2.3",
-    "eslint-plugin-react": "^6.4.1",
-    "mocha": "^3.1.2",
-    "mocha-unfunk-reporter": "^0.4.0",
-    "pre-commit": "^1.0.5",
-    "prettier": "2.1.2"
+    "@babel/cli": "^7.29.7",
+    "@babel/core": "^7.29.13",
+    "@babel/plugin-transform-modules-commonjs": "^7.29.7",
+    "@babel/preset-env": "^7.29.7",
+    "@babel/preset-react": "^7.29.7",
+    "@eslint/js": "^9.39.5",
+    "@tanstack/eslint-plugin-oracles": "https://pkg.pr.new/TanStack/oracles/@tanstack/eslint-plugin-oracles@4749f61",
+    "@tanstack/oracles": "https://pkg.pr.new/TanStack/oracles/@tanstack/oracles@4749f61",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-react": "^7.37.5",
+    "fast-check": "^4.10.2",
+    "globals": "^17.14.0",
+    "jsdom": "^25.0.1",
+    "prettier": "^3.9.10",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vitest": "^4.1.12"
   },
   "directories": {
     "example": "examples"
@@ -45,7 +42,7 @@
   "license": "MIT",
   "main": "dist/index.js",
   "peerDependencies": {
-    "react": "^16.3.0 || ^17 || ^18"
+    "react": "^16.3.0 || ^17 || ^18 || ^19"
   },
   "repository": {
     "type": "git",
@@ -53,13 +50,18 @@
   },
   "scripts": {
     "build": "babel --copy-files src --out-dir dist",
-    "test-watch": "NODE_ENV=test node_modules/.bin/mocha -w --recursive --compilers coffee:babel-core/register -R mocha-unfunk-reporter",
-    "unit-test": "NODE_ENV=test node_modules/.bin/mocha --recursive --compilers coffee:babel-core/register -R mocha-unfunk-reporter",
-    "test": "npm run unit-test && npm run lint",
-    "watch": "./node_modules/.bin/webpack-dev-server --hot",
-    "publish-patch": "npm run build && npm version patch && npm publish; git push; git push --tags",
-    "lint": "eslint --ignore-path .gitignore src/*",
-    "lint:fix": "eslint --ignore-path .gitignore . --fix",
-    "format": "prettier --config .prettierrc --write 'src/**/*.{js,jsx}'"
-  }
+    "test": "pnpm unit-test && pnpm test:oracles && pnpm lint",
+    "unit-test": "vitest run",
+    "test:oracles": "vitest run --config vitest.oracle.config.mjs",
+    "test:gaps": "oracle-gaps --package . --source src/index.js,src/core.js,src/useHeadroom.js,src/shouldUpdate.js --config vitest.oracle.config.mjs --seed 1 --out .oracle-gaps/out",
+    "test-watch": "vitest",
+    "lint": "eslint src test",
+    "lint:fix": "eslint src test --fix",
+    "format": "prettier --write \"src/**/*.{js,jsx}\" \"test/**/*.js\"",
+    "publish-patch": "pnpm build && npm version patch && npm publish; git push; git push --tags"
+  },
+  "packageManager": "pnpm@11.1.0",
+  "files": [
+    "dist"
+  ]
 }
