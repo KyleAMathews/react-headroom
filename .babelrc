@@ -1,4 +1,24 @@
 {
-  "presets": [["@babel/preset-env", { "modules": false }], "@babel/preset-react"],
-  "plugins": [["@babel/plugin-transform-modules-commonjs", { "strictMode": false }]]
+  "assumptions": { "setPublicClassFields": true, "noDocumentAll": true },
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "modules": false,
+        "targets": "defaults",
+        "include": [
+          "@babel/plugin-transform-class-properties",
+          "@babel/plugin-transform-optional-chaining"
+        ]
+      }
+    ],
+    ["@babel/preset-react", { "useSpread": true }]
+  ],
+  "env": {
+    "cjs": {
+      "plugins": [
+        ["@babel/plugin-transform-modules-commonjs", { "strictMode": false }]
+      ]
+    }
+  }
 }

@@ -20,8 +20,31 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
-  # The same oracle under React 19 (the lockfile pins React 18).
-  react-19:
+  # The same oracles under every other React the README supports (the
+  # lockfile pins React 18).
+  react:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        react: ['16.9', '17', '19']
+    name: react-${{ matrix.react }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm add -D react@${{ matrix.react }} react-dom@${{ matrix.react }}
+      - run: node -e "console.log('React', require('react').version)"
+      - run: pnpm test:oracles
+
+  # The behavior oracle with its histories played in Chrome (through
+  # Playwright, with the runner's Chrome): Chrome's layout, scroll events and
+  # ResizeObserver instead of jsdom's stand-ins.
+  chrome:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -31,9 +54,7 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm add -D react@^19 react-dom@^19
-      - run: node -e "console.log('React', require('react').version)"
-      - run: pnpm test:oracles
+      - run: pnpm test:oracles:chrome
 
   # Mutates the owned code and reports each change that no law catches.
   gap-check:

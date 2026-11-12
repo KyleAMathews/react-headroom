@@ -11,8 +11,11 @@ slides out of view; when they scroll up, it slides back in.
 npm install react-headroom
 ```
 
-Works with React 16.3 and later, including React 18 and 19. `useHeadroom`
-needs React 16.8 or later.
+Works with React 16.9 and later: the tests run on React 16.9, 17, 18 and 19,
+for both the component and `useHeadroom`. The build targets modern browsers
+(browserslist `defaults`); it has no dependencies. It needs `requestAnimationFrame`, which
+every browser has, and so do Jest's and Vitest's jsdom environments (a
+hand-built jsdom needs `pretendToBeVisual: true`).
 
 ## Usage
 
@@ -30,10 +33,18 @@ Or keep your own markup and use the hook:
 import { useHeadroom } from 'react-headroom'
 
 function Header() {
-  const { state, ref } = useHeadroom({ pinStart: 100 })
+  const { state, animated, transitionMs, ref } = useHeadroom({
+    pinStart: 100,
+  })
   // state is 'unfixed', 'pinned' or 'unpinned'
   return (
-    <header ref={ref} className={`site-header site-header--${state}`}>
+    <header
+      ref={ref}
+      className={`site-header site-header--${state}`}
+      style={{
+        transition: animated ? `transform ${transitionMs}ms` : 'none',
+      }}
+    >
       …
     </header>
   )
@@ -44,7 +55,14 @@ The hook takes the same behavior options as the component (`parent`, `pin`,
 `disable`, `upTolerance`, `downTolerance`, `pinStart`, `calcHeightOnResize`,
 `matchScrollSpeed`, `onPin`, `onUnpin`, `onUnfix`) and leaves positioning and
 styling to you. Attach `ref` to the header element: the hook measures it, and
-shows it when keyboard focus moves into it.
+shows it when keyboard focus moves into it. `animated` says whether the last
+change slides (a pin, or a hide from pinned) or snaps (a hide from `unfixed`,
+an unfix, `disable`), as the component's `headroom--scrolled` and
+`headroom-disable-animation` classes do, and `transitionMs` how long the slide
+lasts (200 ms, or 100 to 400 ms with `matchScrollSpeed`). `animated` is
+`undefined` before the first change, and `transitionMs` before the first slide. Put your transition behind them, or a header hidden
+from `unfixed` slides down from the top of the viewport. The hook re-renders
+your component only when `state`, `animated` or `transitionMs` changes.
 
 In a Next.js App Router project, react-headroom is a client component (its
 files start with `'use client'`), so you can render it from a server component.
@@ -73,7 +91,8 @@ frame's:
   iOS) changes nothing.
 - A header that mounts, or attaches to a new `parent`, while the page is
   already scrolled past its region (Back navigation restoring a position)
-  starts hidden, so the first scroll up shows it.
+  starts hidden, so the first scroll up shows it. A shown or hidden header that
+  attaches to a new `parent` at or above `pinStart` goes back in place at once.
 - Keyboard focus moving into a hidden header shows it.
 
 The tolerances are a **speed**, in pixels per frame: `upTolerance={10}` shows
@@ -85,26 +104,26 @@ state, and never after unmount.
 
 ## Props
 
-| Prop                  | Default        | What it does                                                                                                                                                                                                                                                            |
-| --------------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `pinStart`            | `0`            | The scroll position (px) where pinning starts and stops. Set it to the height of anything above the header.                                                                                                                                                             |
-| `upTolerance`         | `5`            | px one frame must move up to show a hidden header.                                                                                                                                                                                                                      |
-| `downTolerance`       | `0`            | px one frame must move down to hide a shown header.                                                                                                                                                                                                                     |
-| `pin`                 | `false`        | Keep the header shown (pinned below `pinStart`, in place above it), for example while a menu is open.                                                                                                                                                                   |
-| `disable`             | `false`        | Keep the header in place and stop listening to scrolling.                                                                                                                                                                                                               |
-| `parent`              | `() => window` | The scroller to follow, as a function. `document`, `document.documentElement` and `document.body` mean the page. It may return nothing (a ref not attached yet); it is looked up once per frame until it returns an element, and a new element can replace the old one. |
-| `onPin`               | none           | Called when the header is shown.                                                                                                                                                                                                                                        |
-| `onUnpin`             | none           | Called when the header is hidden.                                                                                                                                                                                                                                       |
-| `onUnfix`             | none           | Called when the header goes back in place.                                                                                                                                                                                                                              |
-| `unpinnedOffset`      | `'100%'`       | How far the header slides up when hidden: a number (px) or a CSS length. `48` keeps the bottom of a taller header visible.                                                                                                                                              |
-| `matchScrollSpeed`    | `false`        | Time the slide to the scroll speed (header height ÷ px per ms, between 100 and 400 ms) instead of 200 ms. A frame after a pause of more than 100 ms counts as one frame.                                                                                                |
-| `calcHeightOnResize`  | `true`         | Track the header's height (with a `ResizeObserver`; without one, on window resize). With `false`, the height measured at mount is kept.                                                                                                                                 |
-| `wrapperStyle`        | `{}`           | Styles for the wrapper, which keeps the header's space in the page. A `height` here replaces the measured height (for example `0` for an overlay header).                                                                                                               |
-| `style`               | none           | Styles for the header, merged over the inline styles.                                                                                                                                                                                                                   |
-| `disableInlineStyles` | `false`        | Render no inline position, transform or transition; style the classes yourself.                                                                                                                                                                                         |
-| `classNames`          | defaults below | Replace any class name, for CSS Modules: `{ wrapper, header, unfixed, pinned, unpinned, scrolled, bottom, disableAnimation }`.                                                                                                                                          |
-| `className`           | none           | An extra class on the wrapper.                                                                                                                                                                                                                                          |
-| `tag`                 | `'div'`        | The wrapper's element type.                                                                                                                                                                                                                                             |
+| Prop                  | Default        | What it does                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| --------------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pinStart`            | `0`            | The scroll position (px) where pinning starts and stops. Set it to the height of anything above the header.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| `upTolerance`         | `5`            | px one frame must move up to show a hidden header.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
+| `downTolerance`       | `0`            | px one frame must move down to hide a shown header.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
+| `pin`                 | `false`        | Keep the header shown (pinned below `pinStart`, in place above it), for example while a menu is open.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `disable`             | `false`        | Keep the header in place and stop listening to scrolling.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `parent`              | `() => window` | The scroller to follow, as a function: something that can scroll. A window (this one or an iframe's), its `document`, `documentElement` and `body` mean that window's page; a `body` that scrolls itself (`html, body { height: 100% } html { overflow: hidden } body { overflow: auto }`) is followed as an element. It is called at mount and on each re-render, and once per frame while it returns nothing (a ref not attached yet); an element it returns then replaces the old one. A scroller replaced without a re-render is not noticed. In a quirks-mode page, a `body` given overflow styles that make it scrollable is not supported. |
+| `onPin`               | none           | Called when the header is shown.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+| `onUnpin`             | none           | Called when the header is hidden.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| `onUnfix`             | none           | Called when the header goes back in place.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `unpinnedOffset`      | `'100%'`       | How far the header slides up when hidden: a number (px) or a CSS length. `48` keeps the bottom of a taller header visible.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| `matchScrollSpeed`    | `false`        | Time the slide to the scroll speed (header height ÷ px per ms, between 100 and 400 ms) instead of 200 ms. A frame after a pause of more than 100 ms counts as one frame.                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
+| `calcHeightOnResize`  | `true`         | Track the header's height (with a `ResizeObserver`; without one, on window resize). With `false`, the height measured at mount is kept.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `wrapperStyle`        | `{}`           | Styles for the wrapper, which keeps the header's space in the page. A `height` here replaces the measured height (for example `0` for an overlay header).                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| `style`               | none           | Styles for the header, merged over the inline styles.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |
+| `disableInlineStyles` | `false`        | Render no inline position, transform or transition; style the classes yourself.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
+| `classNames`          | defaults below | Replace any class name, for CSS Modules: `{ wrapper, header, unfixed, pinned, unpinned, scrolled, bottom, disableAnimation }`.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `className`           | none           | An extra class on the wrapper.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `tag`                 | `'div'`        | The wrapper's element type.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 
 ## Classes
 
@@ -148,8 +167,9 @@ style the classes:
 ## Instance methods
 
 With a ref to the component, `pin()`, `unpin()` and `unfix()` change the state
-directly. A call that names the current state, or comes while `pin` or
-`disable` is set, does nothing. The `pin` prop is usually simpler.
+directly. A call that names the current state, comes while `pin` or `disable`
+is set, or comes after unmount, does nothing. The `pin` prop is usually
+simpler.
 
 ## Recipes
 
@@ -175,8 +195,8 @@ directly. A call that names the current state, or comes while `pin` or
 This library is tested with [oracle testing](https://github.com/TanStack/oracles):
 `test/headroom.oracle.js` states each behavior above as a law, generates
 histories of scrolls, prop changes, resizes and focus, and checks the real
-component and hook against an independent model. Run it with
-`npm run test:oracles`.
+component and hook against an independent model, in jsdom and in Chrome. Run
+it with `npm run test:oracles` (or `npm run test:oracles:chrome`).
 
 ## Credits
 

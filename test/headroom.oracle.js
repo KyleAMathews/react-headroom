@@ -3,7 +3,7 @@
  * scrolls: which of three states (unfixed, pinned, unpinned) the header is in
  * after each animation frame, its classes, inline styles and wrapper height,
  * the callbacks, every prop, focus, overscroll, the instance methods, renders,
- * and cleanup after unmount. It owns src/index.js, src/core.js,
+ * and cleanup after unmount. It owns src/Headroom.js, src/core.js,
  * src/useHeadroom.js and src/shouldUpdate.js.
  *
  *   <Headroom>, scroll down past the header               // → headroom--unpinned: fixed, translate -100%
@@ -40,12 +40,13 @@
  * per change. Pin (L4): pinned below pinStart, unfixed at or above it. Disable
  * (L5): unfixed, unlistened and silent. Parent (L6): the current parent drives
  * the header through passive listeners, including one that resolves after
- * mount. Cleanup (L7): nothing stays attached or runs after unmount.
+ * mount. Cleanup (L7): nothing stays attached or runs after unmount, and the
+ * instance methods do nothing then.
  * Overscroll (L8) changes nothing, not even the reference. Focus (L9) into a
  * hidden header shows it. Wrapper state (L10): headroom-wrapper--<state>.
  * Bottom (L11): headroom--bottom within 1px of the bottom. Class names (L12):
  * any renaming, with every other law holding under it. The hook (L13) follows
- * L1 and L4-L9 as the component does. Speed (L14): with matchScrollSpeed a
+ * L1, L4-L9, L18 and L20 (through its animated) as the component does. Speed (L14): with matchScrollSpeed a
  * transition lasts height ÷ speed, 100-400ms; otherwise 200ms. Instance
  * methods (L15) move the state once, or do nothing (also while pin is true). Defaults (L17): no props
  * behave as the README's defaults. Renders (L18): a step that changes nothing
@@ -56,12 +57,17 @@
  * a re-render with the same props, no setState for a step that shows nothing
  * new, and nothing queued after unmount. Attaching (L6) to a scroller, at
  * mount, on a parent change or when disable turns off, measures from its
- * position and hides an in-place header that is already past its region.
+ * position, hides an in-place header that is already past its region, and
+ * unfixes a fixed one at or above pinStart. Any window names its page (an
+ * iframe's too), as do its document, root and body; a body parent follows
+ * the body when it has more to scroll than its page, and otherwise the page.
+ * Until its element is
+ * measured, the header is 0px tall.
  * Each property states its law, authority and limits in full. Sources:
  * www/pages/index.md (the docs at the time), the README (Props), commit
  * messages that state an intent, WCAG 2.2 SC 2.4.11, and decisions by Kyle
- * Mathews (GitHub KyleAMathews), 2026-11-11 and 2026-11-12 (two code reviews'
- * findings). Every law also requires that nothing throws or logs a warning.
+ * Mathews (GitHub KyleAMathews), 2026-11-11 and 2026-11-12 (three code
+ * reviews' findings). Every law also requires that nothing throws or logs a warning.
  *
  * The model for L1, L6, L8, L9, L11, L14, L15 and L17 steps the state and the
  * reference once per frame of the current parent, with the header height the
@@ -70,22 +76,25 @@
  * histories vary every prop, a renaming of any class, StrictMode, whether a
  * ResizeObserver exists and its entry shape; they scroll the parent and
  * another element in small and large moves at 16, 33 or 100ms per frame, toggle
- * props (sometimes with a frame still pending), resize and replace the header,
- * move focus into it, call its methods, overscroll, and leave work pending at
- * unmount; each step chooses whether timeouts run before the next frame. The
+ * props (sometimes with a frame still pending), resize the header (its
+ * content, or only its padding) and replace it, move focus into it, call its
+ * methods (also after unmount), overscroll, name the page through this
+ * window, an iframe's or a body that scrolls itself, and leave work pending
+ * at unmount; each step chooses whether timeouts run before the next frame. The
  * drivers mount the real component and a header built on the real hook in
  * jsdom, run frames and ResizeObserver notifications themselves, run timeouts
  * on the oracle clock, and record after every step
  * (test/headroom-oracle-harness.js).
  *
- * Limits. jsdom has no layout, so the drivers supply the header height, the
- * scrollers' sizes and ResizeObserver delivery; React renders each update
- * before the next event, where a concurrent root in a browser may not. tag,
- * className and style beyond their
- * defaults are not
- * varied. At mount, onPin may fire or not.
+ * Limits. In jsdom, which the gap check needs, the drivers stand in the header
+ * height, the scrollers' sizes, scroll events and ResizeObserver delivery
+ * (test/oracle-page-jsdom.js); ORACLE_BROWSER=chrome plays the same histories
+ * in Chrome through Playwright (test/oracle-chrome.js), where only
+ * overscroll, fractional positions and other browsers' entry shapes are stood
+ * in; React renders each update
+ * before the next event, where a concurrent root in a browser may not. At
+ * mount, onPin may fire or not.
  */
-import { vi } from 'vitest'
 import fc from 'fast-check'
 import { differs, oracleProperty, pass, violation } from '@tanstack/oracles'
 import {
@@ -100,7 +109,14 @@ import {
   driveHook,
   durationMs,
   either,
+  everyPage,
   everyParent,
+  bottomsOf,
+  heightsOf,
+  transformOf,
+  rr,
+  tagsOf,
+  USER,
   far,
   flickInsideGap,
   fo,
@@ -129,11 +145,8 @@ import {
   wrapperHeights,
 } from './headroom-oracle-harness.js'
 
-// The frame stand-in: `raf` queues, and the driver runs the queue.
-vi.mock('raf', () => import('./oracle-frames.js').then(m => m.rafModule))
-
 const LIMITS =
-  'jsdom with a driver-supplied header height, 3000px page, 768px viewport and ResizeObserver delivery; frames run by the driver, timeouts on the oracle clock; React renders each update before the next event. tag, className and style are not varied.'
+  "A 3000px page in a 768px viewport, in jsdom with stand-ins for layout, scroll events and ResizeObserver, or in Chrome through Playwright (ORACLE_BROWSER=chrome), where those are Chrome's and only overscroll, fractional positions and other browsers' ResizeObserver entry shapes are stood in; frames run by the driver, timeouts on its clock; React renders each update before the next event."
 
 // ---------------------------------------------------------------------------
 // L1: the scroll rule. Also run through useHeadroom (L13).
@@ -144,7 +157,7 @@ const scrollRuleLaw = {
     statement:
       'For every history of in-bounds scrolls from a mount at the top, in every order of frames and timeouts, each frame leaves the header unfixed at or above pinStart; unpinned after a frame that ends past headerHeight + pinStart and moves down, by more than downTolerance from pinned and by any amount (with no transition) from unfixed; pinned, from unpinned, after a frame that moves up more than upTolerance, or moves up and ends at or above headerHeight + pinStart (the header region); and otherwise as it was.',
     authority:
-      'www/pages/index.md:3 ("When you scroll down, it slides out of view and slides back in when scrolling up"), :73-74 (tolerances), :79 (pinStart); src/shouldUpdate.js ("We transition to pin regardless of upTolerance"); commit e58b75e ("Avoid flash of animation when scrolling from top"); decisions by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: a tolerance compares the distance of one frame (a speed); only an unpinned header shows on the way up; an unfixed header past headerHeight + pinStart hides at any speed; 2026-11-12: the header region for showing is headerHeight + pinStart, as for hiding (review finding R7).',
+      'www/pages/index.md:3 ("When you scroll down, it slides out of view and slides back in when scrolling up"), :73-74 (tolerances), :79 (pinStart); src/shouldUpdate.js ("We transition to pin regardless of upTolerance"); commit e58b75e ("Avoid flash of animation when scrolling from top"); decisions by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: a tolerance compares the distance of one frame (a speed); only an unpinned header shows on the way up; an unfixed header past headerHeight + pinStart hides at any speed; 2026-11-12: the header region for showing is headerHeight + pinStart, as for hiding (review finding R7); 2026-11-12: until its element is measured (a hook\'s ref attached late), the header is 0px tall (review finding Z4).',
     limits: `Mount at the top, positions in bounds, no prop changes. ${LIMITS}`,
   },
   histories: {
@@ -372,7 +385,7 @@ oracleProperty({
   model: scrollRuleLaw.model,
   check: scrollRuleLaw.check,
   id: 'headroom scroll rule',
-  owns: ['src/index.js', 'src/core.js', 'src/shouldUpdate.js'],
+  owns: ['src/Headroom.js', 'src/core.js', 'src/shouldUpdate.js'],
   driver: drive,
 })
 oracleProperty({
@@ -391,13 +404,13 @@ oracleProperty({
 
 oracleProperty({
   id: 'headroom class and styles agree',
-  owns: ['src/index.js', 'src/core.js'],
+  owns: ['src/Headroom.js', 'src/core.js'],
   law: {
     statement:
-      "For every history, at every checkpoint (whether or not timeouts have run), the header has exactly one state class, the header has the headroom class and the wrapper the headroom-wrapper class, its inline position and transform are the docs' CSS for that class (unfixed: relative, no translate; pinned: fixed, no translate; unpinned: fixed, translated up by unpinnedOffset, 100% by default) with top, left and right 0 and z-index 1, headroom--scrolled is present exactly when an inline transition is, the wrapper height is wrapperStyle.height when given and otherwise the header's current height (fractions included) after any change of that height, and with disableInlineStyles there is no inline position, transform or transition.",
+      "For every history, at every checkpoint (whether or not timeouts have run), the header has exactly one state class, the header has the headroom class and the wrapper the headroom-wrapper class, its inline position and transform are the docs' CSS for that class (unfixed: relative, no translate; pinned: fixed, no translate; unpinned: fixed, translated up by unpinnedOffset, 100% by default) with top, left and right 0 and z-index 1, headroom--scrolled is present exactly when an inline transition is, the wrapper height is wrapperStyle.height when given and otherwise the header's current height (fractions included) after any change of that height, and with disableInlineStyles there is no inline position, transform or transition; style is merged over the inline styles (its keys win, and with disableInlineStyles it is the header's only style), className is on the wrapper and not the header, wrapperStyle's other keys reach the wrapper, any other prop reaches the header element, and the wrapper's element is tag (div by default).",
     authority:
-      'www/pages/index.md:42-66 (the state classes and their CSS, and disableInlineStyles), :77 (wrapperStyle "maintains the components vertical space"); decisions by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: the inline styles agree with the class at every checkpoint, with no delay after unfixing (the Safari delay of PR #194 is not needed in Safari 27: tested by hand, with and without it); 2026-11-11: the wrapper tracks the header\'s exact height through any size change, whatever the parent (#166, #133, #92); wrapperStyle.height wins (PR #179); unpinnedOffset sets how far the header slides up (#115, PR #163).',
-    limits: `Without a ResizeObserver a new height is owed only after a window resize. ${LIMITS}`,
+      'www/pages/index.md:42-66 (the state classes and their CSS, and disableInlineStyles), :77 (wrapperStyle "maintains the components vertical space"); decisions by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: the inline styles agree with the class at every checkpoint, with no delay after unfixing (the Safari delay of PR #194 is not needed in Safari 27: tested by hand, with and without it); 2026-11-11: the wrapper tracks the header\'s exact height through any size change, whatever the parent (#166, #133, #92); wrapperStyle.height wins (PR #179); unpinnedOffset sets how far the header slides up (#115, PR #163); README, Props (style "merged over the inline styles", className "an extra class on the wrapper", wrapperStyle "styles for the wrapper", tag "the wrapper\'s element type"); 3.2.1 passed other props to the header element; 2026-11-12: cover what the oracles should.',
+    limits: `Without a ResizeObserver a new height is owed only after a resize of the main window (a header rendered into an iframe is not remeasured on the iframe's; decision by Kyle Mathews, 2026-11-12). In Chrome, a size change that the header's own inline transition (all) animates is finished before the checkpoint. ${LIMITS}`,
   },
   histories: {
     arbitrary: historiesOf({
@@ -409,6 +422,9 @@ oracleProperty({
       toggles: ['pin', 'disable', 'parent'],
       resizes: true,
       calls: true,
+      // The component always renders its header: a swap changes its tag.
+      swaps: true,
+      drops: false,
     }),
     runs: 40,
     fixedSeeds: [1],
@@ -417,10 +433,13 @@ oracleProperty({
       'resized without a ResizeObserver',
       'inline styles off',
       'header content resized',
+      'header padding resized',
+      'resized after the header element was replaced',
       'resized with a div parent',
       'fractional height',
       'unpinned with an offset',
       'unpinned with a zero offset',
+      'unpinned with a negative number',
     ],
     measured: ['settled pinned', 'settled unpinned', 'wrapper height given'],
     constructed: [
@@ -460,6 +479,41 @@ oracleProperty({
         }),
       },
       {
+        // Padding or border alone: the border box grows, the content box
+        // does not (a header that shrinks on scroll by its padding).
+        name: 'header padding grows, no window resize',
+        enters: ['header padding resized'],
+        build: g => ({
+          ...g,
+          mount: top,
+          params: { ...g.params, wrapperHeight: null, resizeObserver: true },
+          actions: [
+            // Padding only grows a header past its content.
+            rs(
+              Math.min(120, g.params.headerHeight + 10),
+              3,
+              false,
+              true,
+              'padding'
+            ),
+          ],
+        }),
+      },
+      {
+        // A new tag replaces the header element under the same component.
+        name: 'change the tag, then the header content grows',
+        enters: ['resized after the header element was replaced'],
+        build: g => ({
+          ...g,
+          mount: top,
+          params: { ...g.params, wrapperHeight: null, resizeObserver: true },
+          actions: [
+            { kind: 'swap', drop: false, resizeFirst: false, settle: true },
+            rs(g.params.headerHeight > 60 ? 40 : 90, 0, false),
+          ],
+        }),
+      },
+      {
         name: 'window resize with a div parent',
         enters: ['resized with a div parent'],
         build: g => ({
@@ -485,6 +539,36 @@ oracleProperty({
         }),
       },
       {
+        // The number 0 renders 0px: a valid way to move the header by nothing.
+        name: 'hide with an offset of the number 0',
+        enters: ['unpinned with a zero offset'],
+        build: g => ({
+          ...g,
+          mount: top,
+          params: {
+            ...g.params,
+            unpinnedOffset: 0,
+            disableInlineStyles: false,
+          },
+          actions: [sc(far(g.params)), sc(12)],
+        }),
+      },
+      {
+        // A negative number of px moves the header down.
+        name: 'hide with an offset of -10',
+        enters: ['unpinned with a negative number'],
+        build: g => ({
+          ...g,
+          mount: top,
+          params: {
+            ...g.params,
+            unpinnedOffset: -10,
+            disableInlineStyles: false,
+          },
+          actions: [sc(far(g.params)), sc(12)],
+        }),
+      },
+      {
         name: 'hide with a 2rem offset',
         enters: ['unpinned with an offset'],
         build: g => ({
@@ -501,12 +585,15 @@ oracleProperty({
     ],
   },
   resolve,
-  model: plan => ({ wrapperHeight: wrapperHeights(plan) }),
+  model: plan => ({ wrapperHeight: wrapperHeights(plan), tag: tagsOf(plan) }),
   driver: drive,
   check: (plan, trace, expected) => {
     const thrown = noThrow(trace)
     if (thrown) return thrown
     const seen = checkpoints(trace)
+    const heights = heightsOf(plan)
+    // The user's style, which wins over the inline styles.
+    const user = plan.params.style == null ? {} : USER.style[plan.params.style]
     for (let i = 0; i < seen.length; i++) {
       const s = seen[i]
       const css = look(s.mode, plan.params)
@@ -528,23 +615,34 @@ oracleProperty({
           ],
           position: s.position,
           box: s.box,
-          transform: s.transform,
+          transform: inline
+            ? transformOf(s, s.mode, plan.params, heights[i])
+            : s.transform,
           transition: s.transition !== '',
           wrapperHeight: s.wrapperHeight,
+          wrapperTag: s.wrapperTag,
+          passed: s.passed,
         },
         {
           base: [true, true],
           position: inline ? css.position : '',
-          box: inline
-            ? { top: '0px', left: '0px', right: '0px', zIndex: '1' }
-            : { top: '', left: '', right: '', zIndex: '' },
-          transform: !inline
-            ? ''
-            : css.transforms.includes(s.transform)
-              ? s.transform
-              : css.transforms[0],
+          box: {
+            ...(inline
+              ? { top: '0px', left: '0px', right: '0px', zIndex: '1' }
+              : { top: '', left: '', right: '', zIndex: '' }),
+            ...(user.zIndex !== undefined && { zIndex: String(user.zIndex) }),
+          },
+          transform: inline ? css.transforms[0] : '',
           transition: inline && scrolled,
           wrapperHeight: expected.wrapperHeight[i],
+          wrapperTag: expected.tag[i],
+          passed: {
+            wrapperClass: plan.params.className != null,
+            headerClass: false,
+            color: user.color ?? '',
+            background: plan.params.wrapperExtra ? USER.background : '',
+            id: plan.params.id ? USER.id : '',
+          },
         },
         `headroom--${s.mode}${scrolled ? ' headroom--scrolled' : ''} with these inline styles`
       )
@@ -573,18 +671,25 @@ oracleProperty({
       ) {
         found.add('unpinned with an offset')
         if (
-          step.settle !== undefined &&
-          s &&
-          s.mode === 'unpinned' &&
-          plan.params.unpinnedOffset === '0' &&
-          !plan.params.disableInlineStyles
+          typeof plan.params.unpinnedOffset === 'number' &&
+          plan.params.unpinnedOffset < 0
+        )
+          found.add('unpinned with a negative number')
+        if (
+          plan.params.unpinnedOffset === '0' ||
+          plan.params.unpinnedOffset === 0
         )
           found.add('unpinned with a zero offset')
       }
       if (step.kind !== 'resize' || plan.params.wrapperHeight !== null) return
       if (!plan.params.resizeObserver)
         found.add('resized without a ResizeObserver')
-      if (!step.window) found.add('header content resized')
+      if (!step.window && step.box === 'content')
+        found.add('header content resized')
+      if (!step.window && step.box === 'padding')
+        found.add('header padding resized')
+      if (plan.steps.slice(0, i).some(before => before.kind === 'swap'))
+        found.add('resized after the header element was replaced')
       if (step.props.parent === 'div') found.add('resized with a div parent')
       if (!Number.isInteger(step.height)) found.add('fractional height')
     })
@@ -621,17 +726,16 @@ oracleProperty({
 })
 
 // ---------------------------------------------------------------------------
-// L3: one callback per change of the state.
+// L3: one callback per change of the state. Also run through useHeadroom
+// (L13).
 // ---------------------------------------------------------------------------
 
-oracleProperty({
-  id: 'headroom one callback per change',
-  owns: ['src/index.js', 'src/core.js'],
+const callbacksLaw = {
   law: {
     statement:
-      'For every history, between two checkpoints onPin, onUnpin and onUnfix fire exactly once for a change of the state class into pinned, unpinned and unfixed respectively, and not at all when the class did not change.',
+      'For every history, between two checkpoints onPin, onUnpin and onUnfix fire exactly once for a change of the state into pinned, unpinned and unfixed respectively, and not at all when the state did not change; the callback that fires is the one the latest render passed.',
     authority:
-      'www/pages/index.md:70-72 ("onPin — callback called when header is pinned", "onUnpin — ... unpinned", "onUnfix — callback called when header position is no longer fixed").',
+      'www/pages/index.md:70-72 ("onPin — callback called when header is pinned", "onUnpin — ... unpinned", "onUnfix — callback called when header position is no longer fixed"); src/useHeadroom.js ("Every render passes the latest options, so callbacks and props stay current"); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: cover what the oracles should (fresh callbacks, the hook).',
     limits: `At mount, a header that starts pinned may fire onPin once or not at all. After unmount is L7's. ${LIMITS}`,
   },
   histories: {
@@ -645,10 +749,12 @@ oracleProperty({
       resizes: true,
       focus: true,
       calls: true,
+      rerenders: true,
     }),
     runs: 40,
     fixedSeeds: [1],
     states: [
+      'fired after new callbacks',
       'hidden on enabling',
       'frame inside the unfix gap',
       'onPin fired',
@@ -656,6 +762,21 @@ oracleProperty({
       'onUnfix fired',
     ],
     constructed: [
+      {
+        // Inline callbacks: a re-render passes new ones; the next change
+        // fires the new ones.
+        name: 'hide, re-render with new callbacks, show',
+        enters: ['fired after new callbacks'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [
+            sc(far(g.params)),
+            rr(true),
+            sc(-(g.params.upTolerance + 1)),
+          ],
+        }),
+      },
       {
         // Mounted disabled partway down; enabling attaches and hides the
         // header, a change after mount, so onUnpin fires.
@@ -685,7 +806,6 @@ oracleProperty({
   },
   resolve,
   model: () => ({}),
-  driver: drive,
   check: (plan, trace) => {
     const thrown = noThrow(trace)
     if (thrown) return thrown
@@ -729,6 +849,12 @@ oracleProperty({
         found.add('hidden on enabling')
     })
     for (const s of seen) for (const c of s.callbacks) found.add(`${c} fired`)
+    let fresh = false
+    plan.steps.forEach((step, n) => {
+      if (step.kind === 'rerender' && step.fresh) fresh = true
+      if (fresh && seen[n + 1] && seen[n + 1].callbacks.length > 0)
+        found.add('fired after new callbacks')
+    })
     return found
   },
   calibrations: [
@@ -750,6 +876,37 @@ oracleProperty({
       },
     },
   ],
+}
+oracleProperty({
+  ...callbacksLaw,
+  model: callbacksLaw.model,
+  check: callbacksLaw.check,
+  id: 'headroom one callback per change',
+  owns: ['src/Headroom.js', 'src/core.js'],
+  driver: drive,
+})
+oracleProperty({
+  ...callbacksLaw,
+  model: callbacksLaw.model,
+  check: callbacksLaw.check,
+  id: 'useHeadroom one callback per change',
+  // The hook has no instance methods.
+  histories: {
+    ...callbacksLaw.histories,
+    arbitrary: historiesOf({
+      mountY: anywhere,
+      mountPin: either,
+      mountDisable: either,
+      mountParent: everyParent,
+      scrollOn: ['parent', 'other'],
+      toggles: ['pin', 'disable', 'parent'],
+      resizes: true,
+      focus: true,
+      rerenders: true,
+    }),
+  },
+  owns: ['src/useHeadroom.js', 'src/core.js'],
+  driver: driveHook,
 })
 
 // ---------------------------------------------------------------------------
@@ -901,7 +1058,7 @@ oracleProperty({
   model: pinLaw.model,
   check: pinLaw.check,
   id: 'headroom pin',
-  owns: ['src/index.js', 'src/core.js', 'src/shouldUpdate.js'],
+  owns: ['src/Headroom.js', 'src/core.js', 'src/shouldUpdate.js'],
   driver: drive,
 })
 oracleProperty({
@@ -1105,7 +1262,7 @@ oracleProperty({
   model: disableLaw.model,
   check: disableLaw.check,
   id: 'headroom disable',
-  owns: ['src/index.js', 'src/core.js', 'src/shouldUpdate.js'],
+  owns: ['src/Headroom.js', 'src/core.js', 'src/shouldUpdate.js'],
   driver: drive,
 })
 oracleProperty({
@@ -1151,16 +1308,16 @@ oracleProperty({
 const parentLaw = {
   law: {
     statement:
-      "For every history of scrolls on the parent and on another element, changes of parent (to the window, a scrolling element or nothing) and toggles of disable, the header follows the scroll rule for frames of the current parent only, through passive listeners (a parent of document, document.documentElement or document.body is the page, as the window is); each time it attaches to a scroller (a parent change, or disable turning off), the next frame measures from that scroller's position at attach and counts as a first frame, and if the header is unfixed past the header's height plus pinStart it hides without a transition (silently at mount, with onUnpin later); a parent() that returns nothing does not throw, and the element it returns by the first frame drives the header.",
+      "For every history of scrolls on the parent and on another element, changes of parent (to the window, a scrolling element or nothing) and toggles of disable, the header follows the scroll rule for frames of the current parent only, through passive listeners (a window, this one or an iframe's, and its document, root element and body name that window's page, except that a body which scrolls itself, its scroll events firing on it, is followed as an element); each time it attaches to a scroller (a parent change, or disable turning off), the next frame measures from that scroller's position at attach and counts as a first frame, and if the header is unfixed past the header's height plus pinStart it hides without a transition (silently at mount, with onUnpin later), and if it is pinned or unpinned at or above pinStart it unfixes at once; a parent() that returns nothing does not throw, and the element it returns by the first frame drives the header.",
     authority:
-      'www/pages/index.md:78 ("parent — provide a custom \'parent\' element for scroll events. parent should be a function which resolves to the desired element"); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: parent may change while mounted, and the listeners follow it; issue #110 (a ref-backed parent is empty during mount); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: on attach the reference is the scroller\'s current position (review finding R6); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: a header that attaches past its region starts hidden, so a page restored mid-scroll shows it on the first scroll up (review finding T1); 2026-11-12: the document, its root element and the body name the page, as in 3.2.1 (review finding T4); commit 3f1b2f5 ("feat: support passive event listeners").',
-    limits: `pin stays false. ${LIMITS}`,
+      "www/pages/index.md:78 (\"parent — provide a custom 'parent' element for scroll events. parent should be a function which resolves to the desired element\"); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: parent may change while mounted, and the listeners follow it; issue #110 (a ref-backed parent is empty during mount); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: on attach the reference is the scroller's current position (review finding R6); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: a header that attaches past its region starts hidden, so a page restored mid-scroll shows it on the first scroll up (review finding T1); 2026-11-12: the document, its root element and the body name the page, as in 3.2.1 (review finding T4); 2026-11-12: any window names its page, and a body that scrolls itself (the root's overflow is not visible and the body's is auto or scroll) is an element, as in 3.2.1 (review findings U5, U6), judged by which of the two scrolls, not by styles (review findings V1, X1, Y2, Z1, Z2, Z5); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: a body parent follows the body when it has more to scroll than its page, and otherwise the page (positions do not matter; the page on a tie, as html, body { height: 100% } needs, where the two tie and only the page scrolls; review finding AA1); 2026-11-12: attaching at or above pinStart unfixes a fixed header (review finding U2); commit 3f1b2f5 (\"feat: support passive event listeners\").",
+    limits: `pin stays false. A quirks-mode document's body is not given overflow styles that make it potentially scrollable (then the document has no scrolling element; decision by Kyle Mathews, 2026-11-12). A body parent's layout does not switch while mounted (a switch, such as a scroll lock's html { overflow: hidden }, may move the header once). ${LIMITS}`,
   },
   histories: {
     arbitrary: historiesOf({
       mountY: fc.oneof(fc.constant(0), anywhere),
       mountParent: fc.constantFrom('window', 'div', 'late'),
-      pageAs: fc.constantFrom('window', 'document', 'html', 'body'),
+      pageAs: everyPage,
       scrollOn: ['parent', 'other'],
       toggles: ['parent', 'disable'],
       nudges: true,
@@ -1172,6 +1329,20 @@ const parentLaw = {
       'the page named through the body',
       'the page named through the root element',
       'the page named through the document',
+      "the page named through an iframe's window",
+      "the page named through an iframe's document",
+      'the body scrolling itself',
+      'the page named through a body whose overflow passes to it',
+      'the page named through a body that clips overflow-x',
+      'the page named through a full-height body',
+      'the page under html, body { overflow-x: hidden }',
+      'a full-height body under html, body { overflow-x: hidden }',
+      'the same, with the body margin: both scroll',
+      'back at the top of a body that scrolls, the page not',
+      'the body of a quirks-mode document',
+      'a body that scrolls itself, with its default margin',
+      'unfixed on attaching at the top',
+      'the page of a quirks-mode document',
       'mounted mid-page, then scrolled up',
       'enabled mid-page, then scrolled up',
       'scrolled down right after a parent change',
@@ -1184,6 +1355,7 @@ const parentLaw = {
       'scrolled the new parent after a change',
       'scrolled the old parent after a change',
       'parent resolved after mount',
+      'a ref parent resolved past the region at mount',
     ],
     constructed: [
       {
@@ -1224,6 +1396,176 @@ const parentLaw = {
           ...g,
           mount: { ...top, pageAs: 'document' },
           actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        name: "an iframe's window as parent: hide, then show",
+        enters: ["the page named through an iframe's window"],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'frame' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        name: "an iframe's document as parent: hide, then show",
+        enters: ["the page named through an iframe's document"],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'frameDocument' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // html { overflow: hidden } body { overflow: auto }: the body is the
+        // scroller, its events fire on it, and the window never moves.
+        name: 'a body that scrolls itself as parent: hide, then show',
+        enters: ['the body scrolling itself'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'bodyScroller' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // body { overflow: auto } under a visible root: the overflow passes to
+        // the viewport, so the page scrolls, not the body.
+        name: 'a body with overflow auto under a visible root: hide, then show',
+        enters: ['the page named through a body whose overflow passes to it'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'bodyOverflow' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // The body scrolls itself but keeps the default 8px margin, so the
+        // root is a little taller than the viewport and seems to overflow.
+        name: 'a body that scrolls itself, with its margin: hide, then show',
+        enters: ['a body that scrolls itself, with its default margin'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'bodyScrollerMargin' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // The viewport sits 8px down (it can scroll by the body's margin);
+        // the body scrolls back to its top, so the header unfixes there.
+        name: "the margin layout: hide, show, back to the body's top",
+        enters: ['back at the top of a body that scrolls, the page not'],
+        build: g => {
+          const p = { ...g.params, pinStart: 0 }
+          return {
+            ...g,
+            params: p,
+            mount: { ...top, pageAs: 'bodyClipFullMargin' },
+            actions: hideShowTop(p, true),
+          }
+        },
+      },
+      {
+        // With the body's default margin the root overflows by 8px, so the
+        // viewport can scroll that much too; the body scrolls the content.
+        name: 'the full-height clipped body with its margin: hide, then show',
+        enters: ['the same, with the body margin: both scroll'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'bodyClipFullMargin' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // In quirks mode the body is the page's scrolling element.
+        name: "a quirks-mode document's body as parent: hide, then show",
+        enters: ['the body of a quirks-mode document'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'frameQuirksBody' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // html, body { overflow-x: hidden; height: 100% }: the root is exactly
+        // the viewport, so it cannot scroll, and the body scrolls itself.
+        name: 'html, body { overflow-x: hidden; height: 100% }: hide, then show',
+        enters: ['a full-height body under html, body { overflow-x: hidden }'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'bodyClipFull' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // html, body { overflow-x: hidden }: both overflow-y compute to auto,
+        // so the body is a scroll container, and an element 40px past its end
+        // makes it overflow; but the page is what scrolls.
+        name: 'html, body { overflow-x: hidden } as parent: hide, then show',
+        enters: ['the page under html, body { overflow-x: hidden }'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'bodyClipBoth' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // html, body { height: 100% }: the body is the viewport's height and
+        // the page overflows it, but the overflow passes to the viewport, so
+        // the page scrolls.
+        name: 'a full-height body as parent: hide, then show',
+        enters: ['the page named through a full-height body'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'bodyFullHeight' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // A document without a doctype: its viewport is the body's, and the
+        // root is as tall as the page.
+        name: "a quirks-mode iframe's window as parent: hide, then show",
+        enters: ['the page of a quirks-mode document'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'frameQuirks' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // html { overflow-y: scroll } body { overflow-x: hidden }: the body
+        // could scroll by its styles, but it grows with its content, so the
+        // page scrolls.
+        name: 'a body that clips overflow-x as parent: hide, then show',
+        enters: ['the page named through a body that clips overflow-x'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'bodyOverflowX' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // Hidden down the window; the div sits at its top (0): attaching
+        // there puts the header back in place, before any scroll.
+        name: 'hidden on the window, switch to the div at its top',
+        enters: ['unfixed on attaching at the top'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [sc(far(g.params)), tg('parent'), sc(0, true, 'other')],
+        }),
+      },
+      {
+        // Pinned down the window, then the same switch.
+        name: 'pinned on the window, switch to the div at its top',
+        enters: ['unfixed on attaching at the top'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [
+            sc(far(g.params)),
+            sc(-(g.params.upTolerance + 1)),
+            tg('parent'),
+          ],
         }),
       },
       {
@@ -1364,6 +1706,21 @@ const parentLaw = {
         },
       },
       {
+        // The ref resolves on the mount's first frame, already past the
+        // region: the header starts hidden, silently, as at any mount.
+        name: 'a ref parent, mounted past the region',
+        enters: ['a ref parent resolved past the region at mount'],
+        build: g => ({
+          ...g,
+          mount: {
+            ...top,
+            parent: 'late',
+            y: g.params.headerHeight + g.params.pinStart + 1,
+          },
+          actions: [],
+        }),
+      },
+      {
         name: 'a ref parent, then hide',
         enters: ['parent resolved after mount'],
         build: g => ({
@@ -1412,6 +1769,11 @@ const parentLaw = {
       found.add('listening on the window')
     if (plan.mount.late && plan.steps.length > 0)
       found.add('parent resolved after mount')
+    if (
+      plan.mount.late &&
+      plan.mount.y > plan.params.headerHeight + plan.params.pinStart
+    )
+      found.add('a ref parent resolved past the region at mount')
     for (const step of plan.steps) {
       if (
         step.kind === 'toggle' &&
@@ -1421,7 +1783,7 @@ const parentLaw = {
         found.add('parent emptied with a frame pending')
     }
     if (
-      plan.mount.pageAs !== 'window' &&
+      plan.mount.pageAs === 'document' &&
       plan.steps.some(
         step =>
           step.kind === 'scroll' &&
@@ -1443,6 +1805,56 @@ const parentLaw = {
     )
     if (pageScrolled && plan.mount.pageAs === 'body')
       found.add('the page named through the body')
+    if (pageScrolled && plan.mount.pageAs === 'frame')
+      found.add("the page named through an iframe's window")
+    if (pageScrolled && plan.mount.pageAs === 'frameDocument')
+      found.add("the page named through an iframe's document")
+    if (pageScrolled && plan.mount.pageAs === 'bodyScroller')
+      found.add('the body scrolling itself')
+    if (pageScrolled && plan.mount.pageAs === 'frameQuirks')
+      found.add('the page of a quirks-mode document')
+    if (pageScrolled && plan.mount.pageAs === 'bodyOverflowX')
+      found.add('the page named through a body that clips overflow-x')
+    if (pageScrolled && plan.mount.pageAs === 'bodyScrollerMargin')
+      found.add('a body that scrolls itself, with its default margin')
+    if (pageScrolled && plan.mount.pageAs === 'bodyClipFullMargin')
+      found.add('the same, with the body margin: both scroll')
+    if (
+      ['bodyClipFullMargin', 'bodyScrollerMargin'].includes(
+        plan.mount.pageAs
+      ) &&
+      plan.steps.some(
+        (step, i) =>
+          i > 0 &&
+          step.kind === 'scroll' &&
+          step.scroller === 'window' &&
+          step.y === 0 &&
+          plan.steps[i - 1].y > 0
+      )
+    )
+      found.add('back at the top of a body that scrolls, the page not')
+    if (pageScrolled && plan.mount.pageAs === 'frameQuirksBody')
+      found.add('the body of a quirks-mode document')
+    if (pageScrolled && plan.mount.pageAs === 'bodyClipFull')
+      found.add('a full-height body under html, body { overflow-x: hidden }')
+    if (pageScrolled && plan.mount.pageAs === 'bodyClipBoth')
+      found.add('the page under html, body { overflow-x: hidden }')
+    if (pageScrolled && plan.mount.pageAs === 'bodyFullHeight')
+      found.add('the page named through a full-height body')
+    if (pageScrolled && plan.mount.pageAs === 'bodyOverflow')
+      found.add('the page named through a body whose overflow passes to it')
+    plan.steps.forEach((step, n) => {
+      const seen = checkpoints(trace)
+      if (
+        step.kind === 'toggle' &&
+        step.prop === 'parent' &&
+        step.props.parent !== 'none' &&
+        step.parentY <= plan.params.pinStart &&
+        seen[n] &&
+        seen[n].mode !== 'unfixed'
+      )
+        found.add('unfixed on attaching at the top')
+    })
     if (pageScrolled && plan.mount.pageAs === 'html')
       found.add('the page named through the root element')
     const p = plan.params
@@ -1542,7 +1954,7 @@ oracleProperty({
   model: parentLaw.model,
   check: parentLaw.check,
   id: 'headroom parent',
-  owns: ['src/index.js', 'src/core.js'],
+  owns: ['src/Headroom.js', 'src/core.js'],
   driver: drive,
 })
 oracleProperty({
@@ -1561,10 +1973,10 @@ oracleProperty({
 const cleanupLaw = {
   law: {
     statement:
-      'For every history, after unmount no scroll or resize listener on the scrollers, no focusin listener on the header and no ResizeObserver that was added remains, and a frame, resize or timeout that was pending at unmount fires no callback and logs nothing.',
+      'For every history, after unmount no scroll or resize listener on the scrollers, no focusin listener on the header and no ResizeObserver that was added remains, a frame, resize or timeout that was pending at unmount fires no callback and logs nothing, and pin(), unpin() and unfix() called on the unmounted component do nothing: they return, fire no callback and log nothing.',
     authority:
-      'Decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: unmount leaves nothing behind and nothing runs afterwards (PR #208, issue #138); www/pages/index.md:78 (parent).',
-    limits: `Pending work is one scroll to the top or one window resize, plus any unfix timeout the last step left. ${LIMITS}`,
+      'Decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: unmount leaves nothing behind and nothing runs afterwards (PR #208, issue #138); www/pages/index.md:78 (parent); 2026-11-12: an instance method called after unmount does nothing (review finding U8).',
+    limits: `Pending work is one scroll to the top, one window resize, or (the component) a call to each instance method, plus any unfix timeout the last step left. ${LIMITS}`,
   },
   histories: {
     arbitrary: historiesOf({
@@ -1582,6 +1994,7 @@ const cleanupLaw = {
     fixedSeeds: [1],
     states: [
       'header dropped with a resize pending',
+      'methods called after unmount',
       'unmounted with a frame pending',
       'unmounted with a resize pending',
       'unmounted after a parent change',
@@ -1620,6 +2033,18 @@ const cleanupLaw = {
         name: 'unmount with a resize pending',
         enters: ['unmounted with a resize pending'],
         build: g => ({ ...g, mount: top, actions: [], pending: 'resize' }),
+      },
+      {
+        // A caller that kept the instance calls each method after unmount;
+        // one of them names a state the header is not in.
+        name: 'hide, unmount, then call every method',
+        enters: ['methods called after unmount'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [sc(far(g.params))],
+          pending: 'call',
+        }),
       },
       {
         name: 'change parent, then unmount',
@@ -1703,6 +2128,7 @@ const cleanupLaw = {
     )
       found.add('header dropped with a resize pending')
     if (plan.pending === 'scroll') found.add('unmounted with a frame pending')
+    if (plan.pending === 'call') found.add('methods called after unmount')
     if (plan.params.strictMode) found.add('unmounted in StrictMode')
     if (
       plan.steps.some(
@@ -1767,7 +2193,7 @@ oracleProperty({
       resizes: true,
       swaps: true,
       drops: false,
-      pending: fc.constantFrom('none', 'scroll', 'resize'),
+      pending: fc.constantFrom('none', 'scroll', 'resize', 'call'),
     }),
     states: cleanupLaw.histories.states.filter(
       state => state !== 'header dropped with a resize pending'
@@ -1776,7 +2202,7 @@ oracleProperty({
       c => !c.name.includes('drop the header')
     ),
   },
-  owns: ['src/index.js', 'src/core.js'],
+  owns: ['src/Headroom.js', 'src/core.js'],
   driver: drive,
 })
 oracleProperty({
@@ -1784,6 +2210,16 @@ oracleProperty({
   model: cleanupLaw.model,
   check: cleanupLaw.check,
   id: 'useHeadroom cleanup',
+  // The hook has no instance methods.
+  histories: {
+    ...cleanupLaw.histories,
+    states: cleanupLaw.histories.states.filter(
+      state => state !== 'methods called after unmount'
+    ),
+    constructed: cleanupLaw.histories.constructed.filter(
+      c => !c.name.includes('call every method')
+    ),
+  },
   owns: ['src/useHeadroom.js', 'src/core.js'],
   driver: driveHook,
 })
@@ -1798,10 +2234,12 @@ const overscrollLaw = {
       'For every history of scrolls that may pass up to 80px beyond the top or the bottom, a frame more than 1px past either end leaves the header as it was and does not move the reference, and every in-bounds frame follows the scroll rule.',
     authority:
       'Commit c17a809 ("Ignore OSX bounce", PR #90); issue #195; decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: overscroll changes nothing, including the reference; 2026-11-12: up to 1px past either end is in bounds, as browser zoom gives fractional positions (review finding R5).',
-    limits: `The window is the scroller; mount at the top, no prop changes. ${LIMITS}`,
+    limits: `Mount at the top, no prop changes. ${LIMITS}`,
   },
   histories: {
-    arbitrary: historiesOf({}),
+    // Every scroller: the window, through every way of naming the page and
+    // every page layout, and the div.
+    arbitrary: historiesOf({ mountParent: everyParent, pageAs: everyPage }),
     runs: 40,
     fixedSeeds: [1],
     states: [
@@ -1927,7 +2365,7 @@ oracleProperty({
   model: overscrollLaw.model,
   check: overscrollLaw.check,
   id: 'headroom overscroll',
-  owns: ['src/index.js', 'src/core.js'],
+  owns: ['src/Headroom.js', 'src/core.js'],
   driver: drive,
 })
 oracleProperty({
@@ -1979,7 +2417,8 @@ const focusLaw = {
         }),
       },
       {
-        // The hook's ref moves to a new element; focus there must still pin.
+        // The header element is replaced (the hook's ref moves to a new one;
+        // the component's tag changes); focus there must still pin.
         name: 'hide, replace the header element, then Tab into it',
         enters: ['focused a replaced header'],
         build: g => ({
@@ -2070,7 +2509,7 @@ oracleProperty({
       c => !c.name.includes('drop the header')
     ),
   },
-  owns: ['src/index.js', 'src/core.js'],
+  owns: ['src/Headroom.js', 'src/core.js'],
   driver: drive,
 })
 oracleProperty({
@@ -2088,7 +2527,7 @@ oracleProperty({
 
 oracleProperty({
   id: 'headroom wrapper state class',
-  owns: ['src/index.js'],
+  owns: ['src/Headroom.js'],
   law: {
     statement:
       "For every history, at every checkpoint the wrapper has exactly one headroom-wrapper--<state> class, and it names the header's state.",
@@ -2169,16 +2608,16 @@ oracleProperty({
 
 oracleProperty({
   id: 'headroom bottom class',
-  owns: ['src/index.js', 'src/core.js'],
+  owns: ['src/Headroom.js', 'src/core.js'],
   law: {
     statement:
-      "For every history of scrolls that may overscroll, the header has headroom--bottom exactly when the last in-bounds frame of its scroller ended within 1px of the scroller's bottom, and never before the first such frame.",
+      "For every history of scrolls that may overscroll, on any scroller, the header has headroom--bottom exactly when the last in-bounds frame of its scroller ended within 1px of the scroller's bottom, and never before the first such frame.",
     authority:
-      'Issue #107 ("headroom--bottom", as headroom.js has); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11.',
-    limits: `The window is the scroller; mount at the top. ${LIMITS}`,
+      'Issue #107 ("headroom--bottom", as headroom.js has); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11; 2026-11-12: every law holds on every scroller and page layout ("what isn\'t in the oracles that you know should be? Fix those").',
+    limits: `Mount at the top. ${LIMITS}`,
   },
   histories: {
-    arbitrary: historiesOf({}),
+    arbitrary: historiesOf({ mountParent: everyParent, pageAs: everyPage }),
     runs: 40,
     fixedSeeds: [1],
     states: [
@@ -2314,6 +2753,110 @@ oracleProperty({
   ],
 })
 
+// L11 over pin: the frames that pin asks for measure the bottom too.
+oracleProperty({
+  id: 'headroom bottom class with pin',
+  owns: ['src/Headroom.js', 'src/core.js'],
+  law: {
+    statement:
+      "For every history of scrolls and toggles of pin, on any scroller, the header has headroom--bottom exactly when the last in-bounds frame of its scroller ended within 1px of the scroller's bottom, counting the frame that pin asks for at mount and whenever it changes.",
+    authority:
+      'Issue #107 ("headroom--bottom"); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: pin pins on mount, without waiting for a scroll; 2026-11-12: every law holds on every scroller and page layout (review finding W1: a pinned header at the top of a body that scrolls itself had headroom--bottom).',
+    limits: LIMITS,
+  },
+  histories: {
+    arbitrary: historiesOf({
+      mountY: anywhere,
+      mountPin: either,
+      mountParent: everyParent,
+      pageAs: everyPage,
+      toggles: ['pin'],
+    }),
+    runs: 40,
+    fixedSeeds: [1],
+    states: [
+      'pinned at the top of a body that scrolls itself',
+      'reached the bottom by a pin frame',
+    ],
+    constructed: [
+      {
+        name: 'a body that scrolls itself, pinned at mount at its top',
+        enters: ['pinned at the top of a body that scrolls itself'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'bodyScroller', pin: true },
+          actions: [sc(0)],
+        }),
+      },
+      {
+        name: 'mounted at the bottom, then pin',
+        enters: ['reached the bottom by a pin frame'],
+        build: g => ({
+          ...g,
+          params: { ...g.params, scrollbar: 0 },
+          mount: { ...top, y: MAX_Y },
+          actions: [tg('pin')],
+        }),
+      },
+    ],
+  },
+  resolve,
+  model: plan => ({ bottom: bottomsOf(plan) }),
+  driver: drive,
+  check: (plan, trace, expected) => {
+    const thrown = noThrow(trace)
+    if (thrown) return thrown
+    const seen = checkpoints(trace)
+    for (let i = 0; i < seen.length; i++) {
+      const found = differs(
+        at(i),
+        'bottom class with pin',
+        seen[i].classes.includes('headroom--bottom'),
+        expected.bottom[i],
+        'headroom--bottom'
+      )
+      if (found) return found
+    }
+    return pass
+  },
+  reached: (plan, trace, expected) => {
+    const found = new Set()
+    if (
+      plan.mount.pageAs === 'bodyScroller' &&
+      plan.mount.pin &&
+      plan.mount.y === 0
+    )
+      found.add('pinned at the top of a body that scrolls itself')
+    plan.steps.forEach((step, i) => {
+      if (
+        step.kind === 'toggle' &&
+        step.prop === 'pin' &&
+        expected.bottom[i + 1] &&
+        !expected.bottom[i]
+      )
+        found.add('reached the bottom by a pin frame')
+    })
+    return found
+  },
+  calibrations: [
+    {
+      name: 'bottom class at the top of the page',
+      law: 'bottom class with pin',
+      corrupt: trace =>
+        replaceAt(
+          trace,
+          trace.findIndex(o => o.checkpoint === 'mount'),
+          {
+            classes: [
+              ...trace.find(o => o.checkpoint === 'mount').value.classes,
+              'headroom--bottom',
+            ],
+          }
+        ),
+    },
+  ],
+})
+
 // ---------------------------------------------------------------------------
 // L12: class names. Every other law above already runs with a random renaming
 // (the drivers map rendered classes back to their default names); this law
@@ -2322,13 +2865,13 @@ oracleProperty({
 
 oracleProperty({
   id: 'headroom class names',
-  owns: ['src/index.js'],
+  owns: ['src/Headroom.js'],
   law: {
     statement:
       'For every history and every renaming through classNames (keys wrapper, header, unfixed, pinned, unpinned, scrolled, bottom, disableAnimation), every class on the wrapper and the header is the mapped name of a default class or the wrapper name plus --<state>, and no default name of a renamed key appears.',
     authority:
       'Issues #104 and #48 (CSS Modules need their own class names); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11.',
-    limits: `The user's className is not varied. ${LIMITS}`,
+    limits: LIMITS,
   },
   histories: {
     arbitrary: historiesOf({
@@ -2406,14 +2949,12 @@ oracleProperty({
 // L14: transition speed.
 // ---------------------------------------------------------------------------
 
-oracleProperty({
-  id: 'headroom transition speed',
-  owns: ['src/index.js', 'src/core.js'],
+const speedLaw = {
   law: {
     statement:
-      "For every history of scrolls at 16, 33, 100, 101 or 3000ms per frame, when a frame pins or unpins the header with a transition, the inline transition lasts round(headerHeight × the frame's gap ÷ the distance it moved) clamped to 100-400ms with matchScrollSpeed (a first frame's gap, and any gap over 100ms, counts as 16ms: it starts a new scroll), and 200ms without it.",
+      "For every history of scrolls at 16, 33, 100, 101 or 3000ms per frame, when a frame pins or unpins the header with a transition, the inline transition (useHeadroom's transitionMs, which keeps the last slide's duration through a change that does not slide) lasts round(headerHeight × the frame's gap ÷ the distance it moved) clamped to 100-400ms with matchScrollSpeed (a first frame's gap, and any gap over 100ms, counts as 16ms: it starts a new scroll), and 200ms without it.",
     authority:
-      'Issue #94 ("So header moves into view at same speed person is scrolling"); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: opt-in through matchScrollSpeed, clamped to 100-400ms; 2026-11-12: a gap over 100ms starts a new scroll and counts as one frame (review finding T2).',
+      'Issue #94 ("So header moves into view at same speed person is scrolling"); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: opt-in through matchScrollSpeed, clamped to 100-400ms; 2026-11-12: a gap over 100ms starts a new scroll and counts as one frame (review finding T2); 2026-11-12: useHeadroom returns transitionMs, as it takes matchScrollSpeed (review finding W4).',
     limits: `Inline styles on; the window is the scroller; mount at the top. ${LIMITS}`,
   },
   histories: {
@@ -2530,7 +3071,6 @@ oracleProperty({
   },
   resolve,
   model: plan => scrollRule(plan),
-  driver: drive,
   check: (plan, trace, expected) => {
     const thrown = noThrow(trace)
     if (thrown) return thrown
@@ -2594,6 +3134,156 @@ oracleProperty({
       },
     },
   ],
+}
+oracleProperty({
+  ...speedLaw,
+  model: speedLaw.model,
+  check: speedLaw.check,
+  id: 'headroom transition speed',
+  owns: ['src/Headroom.js', 'src/core.js'],
+  driver: drive,
+})
+oracleProperty({
+  ...speedLaw,
+  model: speedLaw.model,
+  // The hook has no inline styles: its transitionMs is owed whatever
+  // disableInlineStyles says, and it stays the last slide's through a change
+  // that does not slide.
+  check: (plan, trace, expected) => {
+    const thrown =
+      noThrow(trace) ??
+      matchesPath('transition speed', trace, expected, (e, s) =>
+        e.ms === null
+          ? { owed: {}, observed: {} }
+          : { owed: { ms: e.ms }, observed: { ms: durationMs(s.transition) } }
+      )
+    if (thrown) return thrown
+    const seen = checkpoints(trace)
+    const lastSlide = entries => {
+      let ms
+      return entries.map(e => String((ms = e.ms ?? ms)))
+    }
+    const owed = expected.paths.map(lastSlide)
+    const observed = seen.slice(1).map(s => s.transitionMs)
+    if (owed.some(path => JSON.stringify(path) === JSON.stringify(observed)))
+      return pass
+    return differs(
+      'steps',
+      'transition speed',
+      observed,
+      owed[0],
+      "transitionMs, the last slide's duration"
+    )
+  },
+  id: 'useHeadroom transition speed',
+  // The hook's header may arrive after mount (a header rendered
+  // conditionally): until it is measured it is 0px tall, so a slide is the
+  // shortest.
+  histories: {
+    ...speedLaw.histories,
+    arbitrary: historiesOf({ headerless: true, swaps: true, mountY: anywhere }),
+    states: [
+      ...speedLaw.histories.states,
+      'slid before the header was measured',
+    ],
+    constructed: [
+      ...speedLaw.histories.constructed,
+      {
+        name: 'no header yet, matchScrollSpeed: pin by a fast scroll up',
+        enters: ['slid before the header was measured'],
+        build: g => {
+          const p = { ...g.params, matchScrollSpeed: true, upTolerance: 0 }
+          return {
+            ...g,
+            params: p,
+            mount: { ...top, header: false, y: 400 },
+            actions: [sc(100), sc(-60)],
+          }
+        },
+      },
+    ],
+  },
+  reached: (plan, trace, expected) => {
+    const found = new Set(speedLaw.reached(plan, trace, expected))
+    if (
+      !plan.mount.header &&
+      plan.params.matchScrollSpeed &&
+      expected.paths[0].some(
+        (e, i) =>
+          e.ms !== null &&
+          !plan.steps.slice(0, i + 1).some(s => s.kind === 'swap')
+      )
+    )
+      found.add('slid before the header was measured')
+    return found
+  },
+  owns: ['src/useHeadroom.js', 'src/core.js'],
+  driver: driveHook,
+})
+
+// L19 through useHeadroom (L13): the height the hook measures sets the
+// header's region in the scroll rule.
+oracleProperty({
+  id: 'useHeadroom calcHeightOnResize',
+  owns: ['src/useHeadroom.js', 'src/core.js', 'src/shouldUpdate.js'],
+  law: {
+    statement:
+      "For every history of header resizes, toggles of calcHeightOnResize and scrolls, the hook's state follows the scroll rule with the header's height measured at mount, followed through every change while calcHeightOnResize is true, measured again when it turns true, and left as it was while it is false.",
+    authority:
+      'Issue #138 (calcHeightOnResize); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: calcHeightOnResize={false} keeps the height measured at mount; 2026-11-12: the hook follows the same laws (cover what the oracles should).',
+    limits: `Without a ResizeObserver a new height is owed only after a window resize. ${LIMITS}`,
+  },
+  histories: {
+    arbitrary: historiesOf({
+      calcHeightOnResize: fc.boolean(),
+      toggles: ['calcHeightOnResize'],
+      resizes: true,
+    }),
+    runs: 40,
+    fixedSeeds: [1],
+    states: ['scrolled past a height it does not track'],
+    constructed: [
+      {
+        // Not tracking: the header grows from 40px to 100px, and a scroll to
+        // 60px is past the 40px it measured, so it hides.
+        name: 'not tracking, the header grows, scroll past the old height',
+        enters: ['scrolled past a height it does not track'],
+        build: g => ({
+          ...g,
+          params: {
+            ...g.params,
+            headerHeight: 40,
+            pinStart: 0,
+            calcHeightOnResize: false,
+          },
+          mount: top,
+          actions: [rs(100, 0, true), sc(60)],
+        }),
+      },
+    ],
+  },
+  resolve,
+  model: plan => scrollRule(plan),
+  driver: driveHook,
+  check: (plan, trace, expected) =>
+    noThrow(trace) ??
+    matchesPath('calcHeightOnResize', trace, expected, modeAndSnap) ??
+    pass,
+  reached: plan => {
+    const found = new Set()
+    let untracked = false
+    for (const step of plan.steps) {
+      if (step.kind === 'resize' && !step.props.calcHeightOnResize)
+        untracked = true
+      if (
+        untracked &&
+        step.kind === 'scroll' &&
+        step.scroller === step.props.parent
+      )
+        found.add('scrolled past a height it does not track')
+    }
+    return found
+  },
 })
 
 // ---------------------------------------------------------------------------
@@ -2604,7 +3294,7 @@ const CALL_TARGET = { pin: 'pinned', unpin: 'unpinned', unfix: 'unfixed' }
 
 oracleProperty({
   id: 'headroom instance methods',
-  owns: ['src/index.js', 'src/core.js'],
+  owns: ['src/Headroom.js', 'src/core.js'],
   law: {
     statement:
       "For every history of scrolls and of calls to the instance methods pin(), unpin() and unfix(), a call moves the header into pinned, unpinned or unfixed and fires that state's callback once; a call that names the current state, or comes while pin or disable is true, changes nothing and fires nothing; and frames afterwards follow the scroll rule from the same reference.",
@@ -2613,16 +3303,33 @@ oracleProperty({
     limits: `The window is the scroller; mount at the top, no prop changes. ${LIMITS}`,
   },
   histories: {
-    arbitrary: historiesOf({ calls: true }),
+    arbitrary: historiesOf({ calls: true, batches: true }),
     runs: 40,
     fixedSeeds: [1],
     states: [
+      'called twice in one batch, then again',
       'called into a new state',
       'called the current state',
       'still frame after a manual unfix below the header',
       'still frame after a manual unpin inside the header',
     ],
     constructed: [
+      {
+        // One event handler hides and shows the header; the next call hides
+        // it again.
+        name: 'pinned, unpin and pin in one batch, then unpin',
+        enters: ['called twice in one batch, then again'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [
+            sc(far(g.params)),
+            sc(-(g.params.upTolerance + 1)),
+            call('unpin', true, 'pin'),
+            call('unpin'),
+          ],
+        }),
+      },
       {
         // A frame that does not move is neither a scroll down nor up.
         name: 'unfix by hand far down, then a still frame',
@@ -2651,11 +3358,11 @@ oracleProperty({
           mount: top,
           actions: [
             sc(far(g.params)),
-            { kind: 'call', method: 'pin', settle: true },
-            { kind: 'call', method: 'pin', settle: true },
-            { kind: 'call', method: 'unpin', settle: true },
-            { kind: 'call', method: 'unfix', settle: true },
-            { kind: 'call', method: 'unfix', settle: true },
+            call('pin'),
+            call('pin'),
+            call('unpin'),
+            call('unfix'),
+            call('unfix'),
             sc(12),
           ],
         }),
@@ -2670,10 +3377,7 @@ oracleProperty({
     matchesPath('instance methods', trace, expected, (e, s) =>
       e.rule === 'call'
         ? {
-            owed: {
-              mode: e.mode,
-              callbacks: e.mode !== e.from ? [CALLBACK[e.mode]] : [],
-            },
+            owed: { mode: e.mode, callbacks: e.callbacks },
             observed: { mode: s.mode, callbacks: s.callbacks },
           }
         : modeAndSnap(e, s)
@@ -2682,6 +3386,14 @@ oracleProperty({
   reached: (plan, trace, expected) => {
     const found = new Set()
     const p = plan.params
+    plan.steps.forEach((step, i) => {
+      if (
+        step.kind === 'call' &&
+        step.then &&
+        plan.steps.slice(i + 1).some(later => later.kind === 'call')
+      )
+        found.add('called twice in one batch, then again')
+    })
     expected.paths[0].forEach((e, i, all) => {
       const before = all[i - 1]
       if (e.rule === 'call')
@@ -2806,16 +3518,14 @@ const defaultsLaw = {
         'defaults',
         {
           position: s.position,
-          transform: s.transform,
+          transform: transformOf(s, s.mode, plan.params, heightsOf(plan)[i]),
           transitionMs: durationMs(s.transition),
           wrapperHeight: s.wrapperHeight,
           wrapperTag: s.wrapperTag,
         },
         {
           position: css.position,
-          transform: css.transforms.includes(s.transform)
-            ? s.transform
-            : css.transforms[0],
+          transform: css.transforms[0],
           transitionMs: scrolled ? 200 : null,
           wrapperHeight: expected.wrapperHeight[i],
           wrapperTag: 'div',
@@ -2857,7 +3567,7 @@ oracleProperty({
   model: defaultsLaw.model,
   check: defaultsLaw.check,
   id: 'headroom defaults',
-  owns: ['src/index.js', 'src/core.js'],
+  owns: ['src/Headroom.js', 'src/core.js'],
   driver: driveBare,
 })
 oracleProperty({
@@ -2870,7 +3580,7 @@ oracleProperty({
 })
 
 // ---------------------------------------------------------------------------
-// L18: no idle renders.
+// L18: no idle renders. Also run through useHeadroom (L13).
 // ---------------------------------------------------------------------------
 
 const shownOf = s => ({
@@ -2884,15 +3594,13 @@ const shownOf = s => ({
   wrapperHeight: s.wrapperHeight,
 })
 
-oracleProperty({
-  id: 'headroom no idle renders',
-  owns: ['src/index.js', 'src/core.js'],
+const idleRendersLaw = {
   law: {
     statement:
-      'For every history of scrolls, header resizes, focus and instance-method calls, a step that changes nothing the header shows and fires no callback does not re-render the component.',
+      'For every history of scrolls, header resizes, focus and instance-method calls, a step that changes nothing the header shows and fires no callback does not re-render the component, nor the component that calls useHeadroom (which shows state and animated).',
     authority:
-      'Commit 6306f49 ("Use shallowequal instead of react-addons-pure-render-mixin", the pure-render intent); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11.',
-    limits: `Renders are counted in the component's render(), through a subclass that only counts. Prop changes are not judged: they re-render by design. useHeadroom is not judged. ${LIMITS}`,
+      'Commit 6306f49 ("Use shallowequal instead of react-addons-pure-render-mixin", the pure-render intent); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11; 2026-11-12: the same holds for useHeadroom (gap check after review finding U9).',
+    limits: `Renders are counted in the component's render(), through a subclass that only counts, and in the render of the component that calls useHeadroom. Prop changes are not judged: they re-render by design. ${LIMITS}`,
   },
   histories: {
     arbitrary: historiesOf({
@@ -2920,7 +3628,6 @@ oracleProperty({
   },
   resolve,
   model: () => ({ renders: 0 }),
-  driver: drive,
   check: (plan, trace, expected) => {
     const thrown = noThrow(trace)
     if (thrown) return thrown
@@ -2968,6 +3675,72 @@ oracleProperty({
         ),
     },
   ],
+}
+oracleProperty({
+  ...idleRendersLaw,
+  model: idleRendersLaw.model,
+  check: idleRendersLaw.check,
+  id: 'headroom no idle renders',
+  owns: ['src/Headroom.js', 'src/core.js'],
+  driver: drive,
+})
+oracleProperty({
+  ...idleRendersLaw,
+  model: idleRendersLaw.model,
+  check: idleRendersLaw.check,
+  id: 'useHeadroom no idle renders',
+  // The hook has no instance methods. It does not show the bottom or the
+  // height, so a step that changes only those is idle for it.
+  histories: {
+    ...idleRendersLaw.histories,
+    arbitrary: historiesOf({
+      mountY: anywhere,
+      scrollOn: ['parent', 'other'],
+      resizes: true,
+      focus: true,
+    }),
+    states: [
+      ...idleRendersLaw.histories.states,
+      'idle step that reached the bottom',
+      'idle resize',
+    ],
+    constructed: [
+      ...idleRendersLaw.histories.constructed,
+      {
+        // Hidden mid-page, then down to the bottom: the state stays unpinned.
+        name: 'hidden, scroll to the bottom, resize the header',
+        enters: ['idle step that reached the bottom', 'idle resize'],
+        build: g => ({
+          ...g,
+          params: { ...g.params, resizeObserver: true },
+          mount: { ...top, y: 2000 },
+          actions: [
+            sc(400),
+            rs(g.params.headerHeight > 60 ? 40 : 90, 1, false),
+          ],
+        }),
+      },
+    ],
+  },
+  reached: (plan, trace) => {
+    const found = idleRendersLaw.reached(plan, trace)
+    const seen = checkpoints(trace)
+    plan.steps.forEach((step, i) => {
+      const s = seen[i + 1]
+      if (!s || JSON.stringify(shownOf(s)) !== JSON.stringify(shownOf(seen[i])))
+        return
+      if (
+        step.kind === 'scroll' &&
+        step.scroller === step.props.parent &&
+        step.y >= step.max - 1
+      )
+        found.add('idle step that reached the bottom')
+      if (step.kind === 'resize') found.add('idle resize')
+    })
+    return found
+  },
+  owns: ['src/useHeadroom.js', 'src/core.js'],
+  driver: driveHook,
 })
 
 // ---------------------------------------------------------------------------
@@ -2976,7 +3749,7 @@ oracleProperty({
 
 oracleProperty({
   id: 'headroom calcHeightOnResize',
-  owns: ['src/index.js', 'src/core.js'],
+  owns: ['src/Headroom.js', 'src/core.js'],
   law: {
     statement:
       "For every history of header resizes and toggles of calcHeightOnResize, at every checkpoint, the wrapper height is the header's height measured at mount, followed through every change while calcHeightOnResize is true, measured again when it turns true, and left as it was while it is false (wrapperStyle.height wins when given).",
@@ -3066,17 +3839,16 @@ oracleProperty({
 })
 
 // ---------------------------------------------------------------------------
-// L20: headroom-disable-animation.
+// L20: headroom-disable-animation. Also run through useHeadroom (L13), whose
+// animated plays the part of the two classes.
 // ---------------------------------------------------------------------------
 
-oracleProperty({
-  id: 'headroom disable-animation class',
-  owns: ['src/index.js', 'src/core.js'],
+const transitionClassLaw = {
   law: {
     statement:
-      "For every history, once the header's state has changed it has exactly one of headroom--scrolled and headroom-disable-animation: headroom--scrolled when the last change was a pin, a hide from pinned, or a call to unpin(), and headroom-disable-animation when it was a hide from unfixed by scrolling, an unfix, or disable; before its first change it has neither.",
+      "For every history, once the header's state has changed it has exactly one of headroom--scrolled and headroom-disable-animation (useHeadroom's animated is true or false): headroom--scrolled (true) when the last change was a pin, a hide from pinned, or a call to unpin(), and headroom-disable-animation (false) when it was a hide from unfixed by scrolling, an unfix, or disable; before its first change it has neither (animated is undefined).",
     authority:
-      'Commit e58b75e ("Avoid flash of animation when scrolling from top", which added the class); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: keep and document headroom-disable-animation.',
+      'Commit e58b75e ("Avoid flash of animation when scrolling from top", which added the class); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: keep and document headroom-disable-animation; 2026-11-12: useHeadroom returns animated, by the same rule (review finding U3).',
     limits: LIMITS,
   },
   histories: {
@@ -3117,7 +3889,6 @@ oracleProperty({
   },
   resolve,
   model: () => ({}),
-  driver: drive,
   check: (plan, trace) => {
     const thrown = noThrow(trace)
     if (thrown) return thrown
@@ -3198,6 +3969,38 @@ oracleProperty({
       },
     },
   ],
+}
+oracleProperty({
+  ...transitionClassLaw,
+  model: transitionClassLaw.model,
+  check: transitionClassLaw.check,
+  id: 'headroom disable-animation class',
+  owns: ['src/Headroom.js', 'src/core.js'],
+  driver: drive,
+})
+oracleProperty({
+  ...transitionClassLaw,
+  model: transitionClassLaw.model,
+  check: transitionClassLaw.check,
+  id: 'useHeadroom animated',
+  // The hook has no instance methods.
+  histories: {
+    ...transitionClassLaw.histories,
+    arbitrary: historiesOf({
+      mountY: anywhere,
+      mountPin: either,
+      mountDisable: either,
+      toggles: ['pin', 'disable'],
+    }),
+    states: transitionClassLaw.histories.states.filter(
+      state => state !== 'unpinned by hand from unfixed'
+    ),
+    constructed: transitionClassLaw.histories.constructed.filter(
+      c => !c.name.includes('by hand')
+    ),
+  },
+  owns: ['src/useHeadroom.js', 'src/core.js'],
+  driver: driveHook,
 })
 
 // ---------------------------------------------------------------------------
@@ -3209,10 +4012,10 @@ oracleProperty({
 const workLaw = {
   law: {
     statement:
-      "For every history, the frames queued before a frame runs hold at most one scroll frame (exactly one after the current parent scrolls, however many scroll events it fired, none while disabled) and at most one parent lookup while the parent is empty (none while disabled); a re-render with the same props adds no listener and queues nothing new; a step that changes nothing the header shows calls the component's setState zero times; and right after unmount, even before the first frame, nothing is queued.",
+      "For every history, the frames queued before a frame runs hold at most one scroll frame (exactly one after the current parent scrolls, however many scroll events it fired, none while disabled) and at most one parent lookup while the parent is empty (none while disabled); a re-render with the same props, or with new but equal callback and parent functions, adds no listener and queues nothing new; a step that changes nothing the header shows calls the component's setState zero times; and right after unmount, even before the first frame, nothing is queued.",
     authority:
       'Decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: a work law with one pending handle per kind, cancelled on detach and unmount (review findings R3, R8, R9, T5, T10); 3.2.1 coalesced scroll events into one frame (scrollTicking).',
-    limits: `Frames are counted in the driver's frame queue; setState calls are counted for the component only (the hook's state setter bails out by itself). ${LIMITS}`,
+    limits: `Frames are counted in the driver's frame queue; setState calls are counted for the component only; the hook's renders are 'useHeadroom no idle renders'. ${LIMITS}`,
   },
   histories: {
     arbitrary: historiesOf({
@@ -3255,12 +4058,7 @@ const workLaw = {
         build: g => ({
           ...g,
           mount: top,
-          actions: [
-            tg('parent'),
-            tg('parent'),
-            tg('disable'),
-            { kind: 'rerender', settle: true },
-          ],
+          actions: [tg('parent'), tg('parent'), tg('disable'), rr(false)],
         }),
       },
       {
@@ -3278,11 +4076,7 @@ const workLaw = {
         build: g => ({
           ...g,
           mount: { ...top, pin: true },
-          actions: [
-            sc(far(g.params)),
-            { kind: 'rerender', settle: true },
-            { kind: 'rerender', settle: true },
-          ],
+          actions: [sc(far(g.params)), rr(false), rr(true)],
         }),
       },
       {
@@ -3291,13 +4085,7 @@ const workLaw = {
         build: g => ({
           ...g,
           mount: top,
-          actions: [
-            tg('parent'),
-            tg('parent'),
-            { kind: 'rerender', settle: true },
-            { kind: 'rerender', settle: true },
-            { kind: 'rerender', settle: true },
-          ],
+          actions: [tg('parent'), tg('parent'), rr(false), rr(true), rr(true)],
         }),
       },
       {
@@ -3342,7 +4130,7 @@ const workLaw = {
               'work',
               { added: s.queued - s.queuedBefore, adds: s.adds },
               { added: 0, adds: 0 },
-              'a re-render with the same props'
+              'a re-render with the same props or equal functions'
             )
           : undefined) ??
         (step.props.disable &&
@@ -3458,7 +4246,7 @@ oracleProperty({
   model: workLaw.model,
   check: workLaw.check,
   id: 'headroom work',
-  owns: ['src/index.js', 'src/core.js'],
+  owns: ['src/Headroom.js', 'src/core.js'],
   driver: drive,
 })
 oracleProperty({

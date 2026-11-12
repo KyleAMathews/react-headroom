@@ -1,13 +1,19 @@
 # react-headroom
 
-`src/core.js` holds the behavior; `src/index.js` (the `<Headroom>` component)
+`src/core.js` holds the behavior; `src/Headroom.js` (the `<Headroom>` component)
 and `src/useHeadroom.js` (the hook) are views over it. `src/shouldUpdate.js`
 decides what one animation frame does. The README documents every prop and
 behavior; the oracle states each one as a law.
 
 - `pnpm unit-test`: the `shouldUpdate` unit tests.
-- `pnpm test:oracles`: the oracle (`test/headroom.oracle.js`), under the React
-  version installed (CI also runs it under React 19).
+- `pnpm test:oracles`: the oracles (`test/headroom.oracle.js`, the first
+  render in `test/headroom-server.oracle.js`, and the packed package in
+  `test/headroom-package.oracle.js`), under the React version installed (CI
+  also runs them under React 16.9, 17 and 19).
+- `pnpm test:oracles:chrome`: the behavior oracle with its histories played in
+  Chrome through Playwright (the installed Chrome), instead of jsdom's
+  stand-ins. The gap check runs in jsdom: `@tanstack/oracles` runs only in
+  Node (TanStack/oracles#49).
 - `pnpm lint`: ESLint, with the oracle rules for oracle files.
 
 <!-- BEGIN @tanstack/oracles (template 3) -->
@@ -42,7 +48,9 @@ found it.
 - Lint each oracle file and each changed production file after you edit it.
   Fix every report. Do not disable a rule.
 - Oracle files: `test/**/*.oracle.js` (with the test-free harness
-  `test/headroom-oracle-harness.js` and `test/oracle-frames.js`). Gap check:
+  `test/headroom-oracle-harness.js`, the drivers `test/oracle-driver.js`, the
+  pages `test/oracle-page-jsdom.js` and `test/oracle-page-chrome.js`, and
+  `test/oracle-*.js`). Gap check:
   `pnpm test:gaps`.
 
 <!-- END @tanstack/oracles -->

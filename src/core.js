@@ -2,12 +2,11 @@
 // are thin views over one controller: it listens to the scroller, decides the
 // header's state once per animation frame, tracks the header's height, and
 // reports a snapshot to its owner after every change.
-import raf from 'raf'
 import shouldUpdate from './shouldUpdate'
 
 const noop = () => {}
 
-const DEFAULT_OPTIONS = {
+export const DEFAULT_OPTIONS = {
   parent: () => window,
   pin: false,
   disable: false,
@@ -21,49 +20,39 @@ const DEFAULT_OPTIONS = {
   onUnfix: noop,
 }
 
-export const DEFAULT_CLASS_NAMES = {
-  wrapper: 'headroom-wrapper',
-  header: 'headroom',
-  unfixed: 'headroom--unfixed',
-  pinned: 'headroom--pinned',
-  unpinned: 'headroom--unpinned',
-  scrolled: 'headroom--scrolled',
-  bottom: 'headroom--bottom',
-  disableAnimation: 'headroom-disable-animation',
-}
-
 // What a header shows before its controller mounts.
-export const initialSnapshot = () => ({ state: 'unfixed', bottom: false })
+export const initialSnapshot = () => ({
+  state: 'unfixed',
+  bottom: false,
+  // Until the header is measured (a hook's ref not attached yet), 0px.
+  height: 0,
+})
 
-// Each action's change of state, and the callback it fires.
+// Each action's [state, animated, callback].
 const CHANGES = {
-  pin: { state: 'pinned', animated: true, callback: 'onPin' },
-  unpin: { state: 'unpinned', animated: true, callback: 'onUnpin' },
-  'unpin-snap': { state: 'unpinned', animated: false, callback: 'onUnpin' },
-  unfix: { state: 'unfixed', animated: false, callback: 'onUnfix' },
+  pin: ['pinned', true, 'onPin'],
+  unpin: ['unpinned', true, 'onUnpin'],
+  'unpin-snap': ['unpinned', false, 'onUnpin'],
+  unfix: ['unfixed', false, 'onUnfix'],
 }
 
 const PASSIVE = { passive: true }
 
-// The window, the document, its root element and the body all name the page,
-// whose scroll events reach the window.
-const isPage = element =>
-  element === window ||
-  element === document ||
-  element === document.documentElement ||
-  element === document.body
-const eventsOf = element => (isPage(element) ? window : element)
-
-// A scroller's position, the height of its visible area (for the page, without
-// a horizontal scrollbar), and its full scrollable height.
-function extent(element) {
-  const box = isPage(element) ? document.documentElement : element
-  return {
-    y: isPage(element) ? window.pageYOffset : element.scrollTop,
-    visible: box.clientHeight,
-    total: box.scrollHeight,
-  }
+// The window whose page a parent names, or null for an element. Any window
+// names its page (an iframe's too), as do its document, root element and
+// body.
+function windowOf(element) {
+  if (element.window === element) return element
+  const doc = element.ownerDocument || element
+  return element === doc ||
+    element === doc.documentElement ||
+    element === doc.body
+    ? doc.defaultView
+    : null
 }
+
+// How far a box can scroll.
+const range = box => box.scrollHeight - box.clientHeight
 
 const withDefaults = given => {
   const merged = {}
@@ -75,18 +64,25 @@ const withDefaults = given => {
 /**
  * Creates the controller for a mounted header; `destroy()` ends it, and a
  * remount (React StrictMode) creates a new one. `onChange(snapshot)` is called
- * once for each change of the snapshot { state, animated, height, bottom,
- * transitionMs }:
+ * after each change of the snapshot, the controller's own live object
+ * { state, animated, height, bottom, transitionMs }:
  * - state: 'unfixed' | 'pinned' | 'unpinned'
  * - animated: whether the last change animates (unset before the first one)
- * - height: the header's height in px, fractions included
+ * - height: the header's height in px, fractions included (0 until measured)
  * - bottom: whether the last in-bounds frame ended at the scroller's bottom
- * - transitionMs: how long the last animated change lasts
+ * - transitionMs: how long the last slide lasts (unset before the first)
  */
 export function createHeadroom(initialOptions, onChange) {
   let options = withDefaults(initialOptions)
   const snapshot = initialSnapshot()
+  // The scroller; the window whose page it names (null for an element) and
+  // that page's scrolling element (the root, or the body in quirks mode);
+  // whether the scroller is the page's body; and the targets listened to.
   let scroller = null
+  let view = null
+  let page = null
+  let body
+  let targets = []
   let header = null
   let observer = null
   let lastY = 0
@@ -97,36 +93,57 @@ export function createHeadroom(initialOptions, onChange) {
   const pending = {}
   const schedule = (job, fn) => {
     if (!pending[job])
-      pending[job] = raf(time => {
+      pending[job] = requestAnimationFrame(time => {
         pending[job] = 0
         fn(time)
       })
   }
   const cancel = job => {
-    raf.cancel(pending[job])
+    cancelAnimationFrame(pending[job])
     pending[job] = 0
   }
 
-  // The owner keeps only what it shows (the component) or bails out by itself
-  // (the hook's state setter).
-  const emit = () => onChange({ ...snapshot })
+  // The owner keeps only what it shows (the component), or only state,
+  // animated and transitionMs (the hook).
+  const emit = () => onChange(snapshot)
   function change(action, moved = 0, gap = 16, silent = false) {
-    const { callback, ...next } = CHANGES[action]
-    // How long a slide lasts; only an animated change shows it.
-    next.transitionMs =
-      options.matchScrollSpeed && moved !== 0
-        ? Math.min(
-            400,
-            Math.max(100, Math.round((snapshot.height * gap) / Math.abs(moved)))
-          )
-        : 200
-    Object.assign(snapshot, next)
+    const [state, animated, callback] = CHANGES[action]
+    snapshot.state = state
+    snapshot.animated = animated
+    // How long a slide lasts; a change that does not slide keeps the last.
+    if (animated)
+      snapshot.transitionMs =
+        options.matchScrollSpeed && moved !== 0
+          ? Math.min(
+              400,
+              Math.max(
+                100,
+                Math.round((snapshot.height * gap) / Math.abs(moved))
+              )
+            )
+          : 200
     if (!silent) options[callback]()
     emit()
   }
 
+  // The scroller's position, the height of its visible area (for a page,
+  // without a horizontal scrollbar), and its full scrollable height. A page's
+  // box is its scrolling element: the root, or the body in quirks mode. A
+  // body parent is followed as the body when it has more to scroll than its
+  // page, and otherwise as the page (in quirks mode the body is the page's
+  // scrolling element, so the page).
+  function extent() {
+    const own = !view || (body && range(scroller) > range(page))
+    const box = own ? scroller : page
+    return {
+      y: own ? scroller.scrollTop : view.pageYOffset,
+      visible: box.clientHeight,
+      total: box.scrollHeight,
+    }
+  }
+
   function update(time) {
-    const { y, visible, total } = extent(scroller)
+    const { y, visible, total } = extent()
     // Overscroll (more than 1px past either end; less is zoom rounding)
     // changes nothing, not even the reference.
     if (y < -1 || y + visible > total + 1) return
@@ -150,24 +167,31 @@ export function createHeadroom(initialOptions, onChange) {
     detach()
     if (!element) return schedule('lookup', attach)
     scroller = element
+    view = windowOf(element)
+    const doc = view && view.document
+    page = doc && (doc.scrollingElement || doc.documentElement)
+    body = Boolean(doc) && element === doc.body
+    // A body is listened to as its page and as itself: its page's scroll
+    // events reach the window, its own fire on it.
+    targets = body ? [view, element] : [view || element]
+    for (const target of targets)
+      target.addEventListener('scroll', onScroll, PASSIVE)
     // A new scroller's position is the reference; its next frame is a first
-    // frame. In place but scrolled past the header's region, the header hides,
-    // so the first scroll up can show it (silently while mounting).
-    lastY = extent(scroller).y
+    // frame. It also decides at once where the header belongs: in place at or
+    // above pinStart, and hidden if it is in place but scrolled past its
+    // region, so the first scroll up can show it (silently while mounting).
+    lastY = extent().y
     lastTime = null
-    if (
-      !options.pin &&
-      snapshot.state === 'unfixed' &&
-      lastY > snapshot.height + options.pinStart
-    )
-      change('unpin-snap', 0, 16, mounting)
-    eventsOf(scroller).addEventListener('scroll', onScroll, PASSIVE)
+    const inPlace = snapshot.state === 'unfixed'
     if (options.pin) schedule('frame', update)
+    else if (inPlace && lastY > snapshot.height + options.pinStart)
+      change('unpin-snap', 0, 16, mounting)
+    else if (!inPlace && lastY <= options.pinStart) change('unfix')
   }
   function detach() {
-    if (scroller !== null)
-      eventsOf(scroller).removeEventListener('scroll', onScroll, PASSIVE)
-    scroller = null
+    for (const target of targets) target.removeEventListener('scroll', onScroll)
+    targets = []
+    scroller = view = null
     cancel('frame')
   }
 
@@ -179,8 +203,9 @@ export function createHeadroom(initialOptions, onChange) {
   const onFocusIn = () => {
     if (!options.disable && snapshot.state === 'unpinned') change('pin')
   }
-  // Track the header's height with a ResizeObserver, which sees any size
-  // change whatever the parent; without one, remeasure on window resizes.
+  // Track the header's height with a ResizeObserver on its border box (the
+  // height measured), which sees any size change, padding and border
+  // included, whatever the parent; without one, remeasure on window resizes.
   function connectHeader() {
     disconnectHeader()
     if (header === null) return
@@ -192,12 +217,12 @@ export function createHeadroom(initialOptions, onChange) {
       return
     }
     observer = new ResizeObserver(measure)
-    observer.observe(header)
+    observer.observe(header, { box: 'border-box' })
   }
   function disconnectHeader() {
     if (observer !== null) observer.disconnect()
     observer = null
-    window.removeEventListener('resize', onWindowResize, PASSIVE)
+    window.removeEventListener('resize', onWindowResize)
     if (header !== null) header.removeEventListener('focusin', onFocusIn)
     cancel('measure')
   }
@@ -207,12 +232,13 @@ export function createHeadroom(initialOptions, onChange) {
   const call = action =>
     !options.pin &&
     !options.disable &&
-    snapshot.state !== CHANGES[action].state &&
+    snapshot.state !== CHANGES[action][0] &&
     change(action)
 
   return {
     // After setHeader(): start listening. Mounting lasts through the first
-    // frame, where a ref parent resolves.
+    // frame, where a ref parent resolves: attaching first queues its lookup
+    // ahead of the end of mounting.
     mount() {
       mounting = true
       if (!options.disable) attach()

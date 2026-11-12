@@ -8,7 +8,17 @@ export default defineConfig({
     include: /\.jsx?$/,
     exclude: /node_modules/,
     lang: 'jsx',
-    jsx: { runtime: 'automatic' },
+    // As the published build compiles it: the classic runtime
+    // (React.createElement), without development-only props.
+    jsx: { runtime: 'classic', development: false },
   },
-  test: { include: ['test/**/*.oracle.js'], environment: 'jsdom' },
+  test: {
+    include: ['test/**/*.oracle.js'],
+    // With ORACLE_BROWSER=chrome the drivers run in Chrome
+    // (test/oracle-chrome.js), and this side needs no DOM.
+    environment: process.env.ORACLE_BROWSER === 'chrome' ? 'node' : 'jsdom',
+    // A Chrome run waits for Chrome's frames; the package oracle's first test
+    // builds and packs the package (about 3s alone, more beside the others).
+    testTimeout: process.env.ORACLE_BROWSER === 'chrome' ? 120000 : 20000,
+  },
 })

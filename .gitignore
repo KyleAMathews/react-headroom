@@ -38,3 +38,6 @@ www/.cache/
 
 # agent worktrees
 .claude/worktrees/
+
+# oracle package build (test/headroom-package.oracle.js)
+.oracle-package/

@@ -5,7 +5,15 @@ import globals from 'globals'
 import oracles from '@tanstack/eslint-plugin-oracles'
 
 export default [
-  { ignores: ['dist/', 'www/', 'node_modules/', '.oracle-gaps/'] },
+  {
+    ignores: [
+      'dist/',
+      'www/',
+      'node_modules/',
+      '.oracle-gaps/',
+      '.oracle-package/',
+    ],
+  },
   js.configs.recommended,
   react.configs.flat.recommended,
   {
@@ -22,6 +30,11 @@ export default [
     },
   },
   prettier,
+  // The React 16 and 17 render path: written for React 17's API.
+  {
+    files: ['test/oracle-react-legacy.js'],
+    settings: { react: { version: '17.0' } },
+  },
   // Oracle files (test/*oracle*) and the probe form in src/.
   oracles.configs.recommended,
   oracles.configs.production,

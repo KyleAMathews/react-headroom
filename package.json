@@ -6,9 +6,6 @@
   "bugs": {
     "url": "https://github.com/KyleAMathews/react-headroom/issues"
   },
-  "dependencies": {
-    "raf": "^3.3.0"
-  },
   "devDependencies": {
     "@babel/cli": "^7.29.7",
     "@babel/core": "^7.29.13",
@@ -18,12 +15,15 @@
     "@eslint/js": "^9.39.5",
     "@tanstack/eslint-plugin-oracles": "https://pkg.pr.new/TanStack/oracles/@tanstack/eslint-plugin-oracles@4749f61",
     "@tanstack/oracles": "https://pkg.pr.new/TanStack/oracles/@tanstack/oracles@4749f61",
+    "acorn": "^8.19.0",
+    "esbuild": "^0.25.12",
     "eslint": "^9.39.5",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "fast-check": "^4.10.2",
     "globals": "^17.14.0",
     "jsdom": "^25.0.1",
+    "playwright": "^1.65.0",
     "prettier": "^3.9.10",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -40,19 +40,22 @@
   ],
   "license": "MIT",
   "main": "dist/index.js",
+  "module": "dist/esm/index.js",
+  "sideEffects": false,
   "peerDependencies": {
-    "react": "^16.3.0 || ^17 || ^18 || ^19"
+    "react": "^16.9.0 || ^17 || ^18 || ^19"
   },
   "repository": {
     "type": "git",
     "url": "https://github.com/KyleAMathews/react-headroom.git"
   },
   "scripts": {
-    "build": "babel --copy-files src --out-dir dist",
+    "build": "node -e \"fs.rmSync('dist', { recursive: true, force: true })\" && babel --env-name cjs src --out-dir dist && babel src --out-dir dist/esm",
     "test": "pnpm unit-test && pnpm test:oracles && pnpm lint",
     "unit-test": "vitest run",
     "test:oracles": "vitest run --config vitest.oracle.config.mjs",
-    "test:gaps": "oracle-gaps --package . --source src/index.js,src/core.js,src/useHeadroom.js,src/shouldUpdate.js --config vitest.oracle.config.mjs --seed 1 --out .oracle-gaps/out",
+    "test:oracles:chrome": "ORACLE_BROWSER=chrome vitest run --config vitest.oracle.config.mjs test/headroom.oracle.js",
+    "test:gaps": "oracle-gaps --package . --source src/index.js,src/Headroom.js,src/core.js,src/useHeadroom.js,src/shouldUpdate.js --config vitest.oracle.config.mjs --seed 1 --out .oracle-gaps/out",
     "test-watch": "vitest",
     "lint": "eslint src test",
     "lint:fix": "eslint src test --fix",
