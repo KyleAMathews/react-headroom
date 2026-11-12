@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  # The latest Node only: pnpm 11 needs Node 22.13 or later.
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test
+      - run: pnpm build
+
+  # The same oracles under every other React the README supports (the
+  # lockfile pins React 18).
+  react:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        react: ['16.9', '17', '19']
+    name: react-${{ matrix.react }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm add -D react@${{ matrix.react }} react-dom@${{ matrix.react }}
+      - run: node -e "console.log('React', require('react').version)"
+      - run: pnpm test:oracles
+
+  # The behavior oracle with its histories played in Chrome (through
+  # Playwright, with the runner's Chrome): Chrome's layout, scroll events and
+  # ResizeObserver instead of jsdom's stand-ins.
+  chrome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:oracles:chrome
+
+  # Mutates the owned code and reports each change that no law catches.
+  gap-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm test:gaps
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oracle-gaps
+          path: .oracle-gaps/out

@@ -1,95 +1,42 @@
-export default function (
+// Decides what one animation frame does to the header, from the scroll
+// position at the last frame and now. `state` is the header's state
+// ('unfixed', 'pinned' or 'unpinned') and its height. Returns { action }, one
+// of 'none', 'pin', 'unpin', 'unpin-snap' (unpin without a transition) or
+// 'unfix'. The caller skips frames while disabled and frames past either end
+// of the scroller.
+export default function shouldUpdate(
   lastKnownScrollY = 0,
   currentScrollY = 0,
   props = {},
   state = {}
 ) {
-  const scrollDirection = currentScrollY >= lastKnownScrollY ? 'down' : 'up'
-  const distanceScrolled = Math.abs(currentScrollY - lastKnownScrollY)
+  const moved = currentScrollY - lastKnownScrollY
+  const atTop = currentScrollY <= props.pinStart
+  const pastHeader = currentScrollY > state.height + props.pinStart
+  let action = 'none'
 
-  // We're disabled
-  if (props.disable) {
-    return {
-      action: 'none',
-      scrollDirection,
-      distanceScrolled,
-    }
-    // We're pinned
-  } else if (props.pin) {
-    return {
-      action: state.state !== 'pinned' ? 'pin' : 'none',
-      scrollDirection,
-      distanceScrolled,
-    }
-    // We're at the top and not fixed yet.
-  } else if (currentScrollY <= props.pinStart && state.state !== 'unfixed') {
-    return {
-      action: 'unfix',
-      scrollDirection,
-      distanceScrolled,
-    }
-    // We're unfixed and headed down. Carry on.
-  } else if (
-    currentScrollY <= state.height &&
-    scrollDirection === 'down' &&
-    state.state === 'unfixed'
-  ) {
-    return {
-      action: 'none',
-      scrollDirection,
-      distanceScrolled,
-    }
-  } else if (
-    currentScrollY > state.height + props.pinStart &&
-    scrollDirection === 'down' &&
-    state.state === 'unfixed'
-  ) {
-    return {
-      action: 'unpin-snap',
-      scrollDirection,
-      distanceScrolled,
-    }
-    // We're past the header and scrolling down.
-    // We transition to "unpinned" if necessary.
-  } else if (
-    scrollDirection === 'down' &&
-    ['pinned', 'unfixed'].indexOf(state.state) >= 0 &&
-    currentScrollY > state.height + props.pinStart &&
-    distanceScrolled > props.downTolerance
-  ) {
-    return {
-      action: 'unpin',
-      scrollDirection,
-      distanceScrolled,
-    }
-    // We're scrolling up, we transition to "pinned"
-  } else if (
-    scrollDirection === 'up' &&
-    distanceScrolled > props.upTolerance &&
-    ['pinned', 'unfixed'].indexOf(state.state) < 0
-  ) {
-    return {
-      action: 'pin',
-      scrollDirection,
-      distanceScrolled,
-    }
-    // We're scrolling up, and inside the header.
-    // We transition to pin regardless of upTolerance
-  } else if (
-    scrollDirection === 'up' &&
-    currentScrollY <= state.height &&
-    ['pinned', 'unfixed'].indexOf(state.state) < 0
-  ) {
-    return {
-      action: 'pin',
-      scrollDirection,
-      distanceScrolled,
-    }
-  } else {
-    return {
-      action: 'none',
-      scrollDirection,
-      distanceScrolled,
+  if (props.pin) {
+    // Pinned: shown below pinStart, in place at or above it.
+    if (atTop) action = state.state !== 'unfixed' ? 'unfix' : 'none'
+    else action = state.state !== 'pinned' ? 'pin' : 'none'
+  } else if (atTop) {
+    // At the top: back in place.
+    if (state.state !== 'unfixed') action = 'unfix'
+  } else if (state.state === 'unfixed') {
+    // The in-place header has scrolled out of view: hide it at any speed,
+    // without a transition.
+    if (pastHeader && moved > 0) action = 'unpin-snap'
+  } else if (state.state === 'pinned') {
+    // Past the header and scrolling down faster than downTolerance: hide it.
+    if (pastHeader && moved > props.downTolerance) action = 'unpin'
+  } else if (moved < 0) {
+    // Hidden and scrolling up faster than upTolerance, or back inside the
+    // header's region (where it sits in the page): show it, regardless of
+    // upTolerance in that case.
+    if (-moved > props.upTolerance || !pastHeader) {
+      action = 'pin'
     }
   }
+
+  return { action }
 }

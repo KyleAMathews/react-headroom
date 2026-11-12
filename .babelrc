@@ -1,4 +1,24 @@
 {
-  "presets": ["es2015", "stage-1", "react"],
-  "plugins": ["transform-undefined-to-void"]
+  "assumptions": { "setPublicClassFields": true, "noDocumentAll": true },
+  "presets": [
+    [
+      "@babel/preset-env",
+      {
+        "modules": false,
+        "targets": "defaults",
+        "include": [
+          "@babel/plugin-transform-class-properties",
+          "@babel/plugin-transform-optional-chaining"
+        ]
+      }
+    ],
+    ["@babel/preset-react", { "useSpread": true }]
+  ],
+  "env": {
+    "cjs": {
+      "plugins": [
+        ["@babel/plugin-transform-modules-commonjs", { "strictMode": false }]
+      ]
+    }
+  }
 }

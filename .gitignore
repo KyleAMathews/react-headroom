@@ -32,3 +32,12 @@ public
 node_modules/
 .intermediate-representation/
 www/.cache/
+
+# oracle gap check output
+.oracle-gaps/
+
+# agent worktrees
+.claude/worktrees/
+
+# oracle package build (test/headroom-package.oracle.js)
+.oracle-package/

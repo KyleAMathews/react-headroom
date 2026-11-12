@@ -1,5 +1,4 @@
-/* eslint-disable no-unused-expressions, import/no-extraneous-dependencies */
-import { expect } from 'chai'
+import { beforeEach, describe, expect, it } from 'vitest'
 import shouldUpdate from '../src/shouldUpdate'
 
 let propDefaults = {}
@@ -23,15 +22,6 @@ describe('shouldUpdate', () => {
 
   it('should return an object', () => {
     expect(shouldUpdate()).to.be.instanceof(Object)
-  })
-
-  // Test scrolling direction detection.
-  it('should report scrolling down when currentScroll is greater than lastKnownScrollY', () => {
-    expect(shouldUpdate(0, 10).scrollDirection).to.equal('down')
-  })
-
-  it('should report scrolling upwhen currentScroll is less than lastKnownScrollY', () => {
-    expect(shouldUpdate(10, 0).scrollDirection).to.equal('up')
   })
 
   // Test action logic.
