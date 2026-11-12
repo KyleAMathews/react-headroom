@@ -35,3 +35,6 @@ www/.cache/
 
 # oracle gap check output
 .oracle-gaps/
+
+# agent worktrees
+.claude/worktrees/

@@ -1,6 +1,5 @@
 'use client'
-import React, { Component } from 'react'
-import shallowequal from 'shallowequal'
+import React, { PureComponent } from 'react'
 import { createHeadroom, DEFAULT_CLASS_NAMES, initialSnapshot } from './core'
 
 export { default as useHeadroom } from './useHeadroom'
@@ -57,37 +56,34 @@ const OWN_PROPS = [
  */
 // The part of the controller's snapshot that render shows: a height that
 // wrapperStyle overrides is not shown.
-const shownState = (props, state) =>
-  props.wrapperStyle && props.wrapperStyle.height !== undefined
-    ? { ...state, height: undefined }
-    : state
+const shownOf = (props, snapshot) =>
+  JSON.stringify(
+    props.wrapperStyle && props.wrapperStyle.height !== undefined
+      ? { ...snapshot, height: undefined }
+      : snapshot
+  )
 
-export default class Headroom extends Component {
+export default class Headroom extends PureComponent {
   static defaultProps = {
     tag: 'div',
     unpinnedOffset: '100%',
   }
 
-  state = initialSnapshot()
+  // The controller's latest snapshot; the state holds only what render shows
+  // of it, so a change that shows nothing renders nothing.
+  snapshot = initialSnapshot()
+  state = {}
 
   // The controller lives from mount to unmount; React StrictMode's remount
   // creates a new one.
   componentDidMount() {
-    this.headroom = createHeadroom(this.props, snapshot =>
-      this.setState(snapshot)
-    )
+    this.headroom = createHeadroom(this.props, snapshot => {
+      this.snapshot = snapshot
+      const shown = shownOf(this.props, snapshot)
+      if (shown !== this.state.shown) this.setState({ shown })
+    })
     this.headroom.setHeader(this.inner)
     this.headroom.mount()
-  }
-
-  shouldComponentUpdate(nextProps, nextState) {
-    return (
-      !shallowequal(this.props, nextProps) ||
-      !shallowequal(
-        shownState(this.props, this.state),
-        shownState(nextProps, nextState)
-      )
-    )
   }
 
   componentDidUpdate() {
@@ -121,13 +117,18 @@ export default class Headroom extends Component {
     const rest = { ...this.props }
     for (const prop of OWN_PROPS) delete rest[prop]
     const names = { ...DEFAULT_CLASS_NAMES, ...this.props.classNames }
-    const { state, animated, height, bottom, transitionMs } = this.state
+    const { state, animated, height, bottom, transitionMs } = this.snapshot
 
+    // A leading minus negates a plain length (including a unitless 0, which
+    // calc() would turn into a number); calc() negates any other length,
+    // including calc() and var().
     const offset =
       typeof unpinnedOffset === 'number'
-        ? `${unpinnedOffset}px`
-        : unpinnedOffset
-    const translateY = state === 'unpinned' ? `-${offset}` : 0
+        ? `-${unpinnedOffset}px`
+        : /^(\d+\.?\d*|\.\d+)[a-z%]*$/.test(unpinnedOffset)
+          ? `-${unpinnedOffset}`
+          : `calc(-1 * (${unpinnedOffset}))`
+    const translateY = state === 'unpinned' ? offset : 0
     let innerStyle = {
       position:
         this.props.disable || state === 'unfixed' ? 'relative' : 'fixed',
@@ -160,7 +161,7 @@ export default class Headroom extends Component {
       .filter(Boolean)
       .join(' ')
 
-    const wrapperStyles = { height: height ? height : null, ...wrapperStyle }
+    const wrapperStyles = { height: height || null, ...wrapperStyle }
     const wrapperClassName = [
       userClassName,
       names.wrapper,

@@ -31,8 +31,9 @@ export default function shouldUpdate(
     if (pastHeader && moved > props.downTolerance) action = 'unpin'
   } else if (moved < 0) {
     // Hidden and scrolling up faster than upTolerance, or back inside the
-    // header's height: show it, regardless of upTolerance in that case.
-    if (-moved > props.upTolerance || currentScrollY <= state.height) {
+    // header's region (where it sits in the page): show it, regardless of
+    // upTolerance in that case.
+    if (-moved > props.upTolerance || !pastHeader) {
       action = 'pin'
     }
   }

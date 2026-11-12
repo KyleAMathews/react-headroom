@@ -25,8 +25,8 @@ export default function useHeadroom(options = {}) {
       setState(snapshot.state)
     )
     headroom.current = current
-    // The options effect below attaches to the parent.
     current.setHeader(header.current)
+    current.mount()
     return () => {
       current.destroy()
       headroom.current = null

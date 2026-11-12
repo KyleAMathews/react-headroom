@@ -19,10 +19,14 @@ This repository tests its laws with `@tanstack/oracles`.
 **Who owns what.** The laws belong to the people who maintain this
 repository: what the code promises, the authority for each promise, and its
 limits. Propose a law, but do not adopt or change one without their
-approval. The production code that the oracles own is yours. How it is built
-is your call, and you will keep building on it. Make it the smallest, clearest
-code that satisfies the oracles: merge repeated code, remove code that no law
-needs (after the checks in `oracles-design` step 8), and restructure freely while the oracles pass.
+approval. The production code that the oracles own is yours, and you are
+judged on it: fast, small, and elegant. Think of yourself as an optimizing
+compiler for the oracle. Anything that keeps every oracle passing is allowed,
+so make big refactors without caution: merge repeated code, remove code that
+no law needs (after the checks in `oracles-design` step 8), change data
+structures and algorithms, and rewrite whole modules. The oracle is the
+review. You will keep building on this code, so leave it better than you
+found it.
 
 - To find where an oracle would help, or to propose a new one, read
   `node_modules/@tanstack/oracles/skills/oracles-start/SKILL.md` in full and

@@ -22,18 +22,29 @@ import { frames } from './oracle-frames.js'
 
 globalThis.IS_REACT_ACT_ENVIRONMENT = true
 
-export const PAGE_HEIGHT = 3000
-export const VIEWPORT = 768 // jsdom's innerHeight
+const PAGE_HEIGHT = 3000
+const VIEWPORT = 768 // jsdom's innerHeight
 const DIV = { client: 500, offset: 520, scroll: 2500 }
 // The bottom-most in-bounds position of each scroller.
-export const MAX = {
+const MAX = {
   window: PAGE_HEIGHT - VIEWPORT,
   div: DIV.scroll - DIV.client,
+  none: 0,
 }
 export const MAX_Y = MAX.window
+// The bottom-most position of each scroller in one history: a horizontal
+// scrollbar takes its height from the window's visible area (innerHeight
+// still includes it), so the page scrolls that much further.
+const maxOf = params => ({ ...MAX, window: MAX.window + params.scrollbar })
 export const OVERSCROLL = 80
 
-const page = { headerHeight: 60, window: 0, div: 0, container: null }
+const page = {
+  headerHeight: 60,
+  window: 0,
+  div: 0,
+  scrollbar: 0,
+  container: null,
+}
 const isHeader = element =>
   page.container !== null &&
   element.parentElement != null &&
@@ -66,6 +77,11 @@ for (const element of [document.body, document.documentElement]) {
 Object.defineProperty(window, 'pageYOffset', {
   configurable: true,
   get: () => page.window,
+})
+// The viewport without a horizontal scrollbar; innerHeight stays 768.
+Object.defineProperty(document.documentElement, 'clientHeight', {
+  configurable: true,
+  get: () => VIEWPORT - page.scrollbar,
 })
 
 // The ResizeObserver stand-in. `observing` is every (observer, element) pair
@@ -132,6 +148,9 @@ function deliverResizes(onlyInitial, shape) {
 }
 
 const other = scroller => (scroller === 'window' ? 'div' : 'window')
+// A parent change: window -> div -> none (a ref whose element went away) ->
+// window. With no parent, nothing scrolls the header.
+const nextParent = { window: 'div', div: 'none', none: 'window' }
 
 // The class names the docs give, by the keys of the `classNames` prop. A
 // renamed key renders as `x-<default>`. The wrapper's state classes are the
@@ -195,7 +214,12 @@ export function historiesOf({
   calls = false,
   nudges = false,
   swaps = false,
+  rerenders = false,
+  drops = true,
   pending = fc.constant('none'),
+  // How parent() names the page: the window, or the document, its root
+  // element or the body, which all scroll with it.
+  pageAs = fc.constant('window'),
   matchScrollSpeed = fc.boolean(),
   calcHeightOnResize = fc.constant(true),
   params,
@@ -208,7 +232,10 @@ export function historiesOf({
       fc.integer({ min: -400, max: 400 })
     ),
     jitter: fc.option(fc.integer({ min: 0, max: MAX_Y }), { nil: null }),
-    gap: fc.constantFrom(16, 33, 100),
+    // A fractional part, as browser zoom gives scroll positions.
+    fraction: fc.constantFrom(0, 0.4),
+    // ms since the last frame: steady scrolling, or a pause (101 and 3000).
+    gap: fc.constantFrom(16, 33, 100, 101, 3000),
     settle: fc.boolean(),
   })
   const others = [
@@ -222,7 +249,18 @@ export function historiesOf({
           : fc.constant(null),
         settle: fc.boolean(),
       }),
-    swaps && fc.record({ kind: fc.constant('swap'), settle: fc.boolean() }),
+    // A re-render with the same props (a parent component rendering again).
+    rerenders &&
+      fc.record({ kind: fc.constant('rerender'), settle: fc.boolean() }),
+    swaps &&
+      fc.record({
+        kind: fc.constant('swap'),
+        // The new header element, or none (the header unmounted).
+        drop: drops ? fc.boolean() : fc.constant(false),
+        // A window resize whose frame is still pending when it happens.
+        resizeFirst: fc.boolean(),
+        settle: fc.boolean(),
+      }),
     resizes &&
       fc.record({
         kind: fc.constant('resize'),
@@ -258,7 +296,15 @@ export function historiesOf({
         unpinnedOffset: fc.option(
           fc.oneof(
             fc.integer({ min: 0, max: 120 }),
-            fc.constantFrom('50%', '100%', '2rem')
+            fc.constantFrom(
+              '50%',
+              '100%',
+              '2rem',
+              '0',
+              'calc(100% + 8px)',
+              'var(--offset, 2rem)',
+              '-1rem'
+            )
           ),
           {
             nil: null,
@@ -273,6 +319,8 @@ export function historiesOf({
         calcHeightOnResize,
         resizeObserver: fc.boolean(),
         strictMode: fc.boolean(),
+        // A horizontal scrollbar on the page, in px.
+        scrollbar: fc.constantFrom(0, 15),
         resizeEntries: fc.constantFrom('array', 'object', 'contentRect'),
         wrapperHeight: fc.option(fc.constantFrom('0px', '100px', 'auto'), {
           nil: null,
@@ -283,6 +331,7 @@ export function historiesOf({
       pin: mountPin,
       disable: mountDisable,
       parent: mountParent,
+      pageAs,
     }),
     actions: fc.array(action, { maxLength: 14 }),
     pending,
@@ -294,11 +343,18 @@ export const either = fc.boolean()
 export const everyParent = fc.constantFrom('window', 'div')
 
 // Builders for constructed histories. Each value stays inside the grammar.
-export const sc = (move, settle = true, on = 'parent', gap = 16) => ({
+export const sc = (
+  move,
+  settle = true,
+  on = 'parent',
+  gap = 16,
+  fraction = 0
+) => ({
   kind: 'scroll',
   on,
   move,
   jitter: null,
+  fraction,
   gap,
   settle,
 })
@@ -321,7 +377,13 @@ export const call = (method, settle = true) => ({
   method,
   settle,
 })
-export const top = { y: 0, pin: false, disable: false, parent: 'window' }
+export const top = {
+  y: 0,
+  pin: false,
+  disable: false,
+  parent: 'window',
+  pageAs: 'window',
+}
 // A move down that hides the header from anywhere near the top.
 export const far = p => p.headerHeight + p.pinStart + p.downTolerance + 50
 // Hide, show, then return to the top, so the header unfixes from pinned.
@@ -337,7 +399,8 @@ export function hideShowTop(p, settleAtTop) {
 export const resolveWithin = overscroll => history => {
   const { params, mount } = history
   const parentAtMount = mount.parent === 'late' ? 'div' : mount.parent
-  const at = { window: 0, div: 0 }
+  const MAX = maxOf(params)
+  const at = { window: 0, div: 0, none: 0 }
   at[parentAtMount] = Math.min(mount.y, MAX[parentAtMount])
   const mountY = at[parentAtMount]
   const props = {
@@ -347,6 +410,7 @@ export const resolveWithin = overscroll => history => {
     calcHeightOnResize: params.calcHeightOnResize,
   }
   let headerHeight = params.headerHeight
+  let headerPresent = true
   // The mount's first frame is at 16ms.
   let time = 16
   const steps = history.actions.map(action => {
@@ -354,19 +418,23 @@ export const resolveWithin = overscroll => history => {
     time += action.kind === 'scroll' ? action.gap : 16
     if (action.kind === 'scroll') {
       const scroller =
-        action.on === 'parent' ? props.parent : other(props.parent)
+        action.on === 'parent' && props.parent !== 'none'
+          ? props.parent
+          : other(props.parent)
       at[scroller] = Math.min(
         MAX[scroller] + overscroll,
-        Math.max(-overscroll, at[scroller] + action.move)
+        Math.max(-overscroll, Math.round(at[scroller]) + action.move)
       )
+      if (at[scroller] >= 0) at[scroller] += action.fraction
       Object.assign(base, {
         scroller,
         y: at[scroller],
         max: MAX[scroller],
         jitter: action.jitter,
+        gap: action.gap,
       })
     } else if (action.kind === 'toggle') {
-      if (action.nudge !== null) {
+      if (action.nudge !== null && props.parent !== 'none') {
         const scroller = props.parent
         at[scroller] = Math.min(
           MAX[scroller],
@@ -375,7 +443,9 @@ export const resolveWithin = overscroll => history => {
         Object.assign(base, { nudgeScroller: scroller, nudgeY: at[scroller] })
       }
       props[action.prop] =
-        action.prop === 'parent' ? other(props.parent) : !props[action.prop]
+        action.prop === 'parent'
+          ? nextParent[props.parent]
+          : !props[action.prop]
       base.prop = action.prop
     } else if (action.kind === 'resize') {
       headerHeight = action.height + action.quarters / 4
@@ -387,11 +457,19 @@ export const resolveWithin = overscroll => history => {
       })
     } else if (action.kind === 'call') {
       base.method = action.method
+    } else if (action.kind === 'swap') {
+      Object.assign(base, {
+        drop: action.drop,
+        resizeFirst: action.resizeFirst,
+      })
+      headerPresent = !action.drop
     }
+    base.headerPresent = headerPresent
     return {
       ...base,
       props: { ...props },
       parentY: at[props.parent],
+      parentMax: MAX[props.parent],
       headerHeight,
       time,
     }
@@ -414,7 +492,7 @@ export const resolve = resolveWithin(0)
 // measured at mount, followed after every change while calcHeightOnResize is
 // on, and measured again when it turns on. The wrapper owes it unless
 // wrapperStyle.height is given; the scroll rule's thresholds read it.
-export function measuredHeights(plan) {
+function measuredHeights(plan) {
   let measured = plan.params.headerHeight
   const heights = [measured]
   for (const step of plan.steps) {
@@ -449,7 +527,9 @@ export const wrapperHeights = plan =>
 // previous frame, so its gap is taken as 16ms.
 function transitionMs(p, state, moved, time, height) {
   if (!p.matchScrollSpeed) return 200
-  const gap = state.lastTime === null ? 16 : time - state.lastTime
+  // A frame more than 100ms after the last one starts a new scroll: one frame.
+  const since = state.lastTime === null ? Infinity : time - state.lastTime
+  const gap = since > 100 ? 16 : since
   return Math.min(
     400,
     Math.max(100, Math.round((height * gap) / Math.abs(moved)))
@@ -458,7 +538,8 @@ function transitionMs(p, state, moved, time, height) {
 
 function frame(p, state, y, time, max, height) {
   const moved = y - state.lastY
-  const inBounds = y >= 0 && y <= max
+  // L8: overscroll is more than 1px past either end (zoom rounding is less).
+  const inBounds = y >= -1 && y <= max + 1
   const next = (mode, rule, animated) => ({
     state: inBounds
       ? { mode, lastY: y, lastTime: time, bottom: y >= max - 1 }
@@ -492,7 +573,8 @@ function frame(p, state, y, time, max, height) {
   // Showing applies only to a header that slid out; an unfixed header is in place.
   if (state.mode === 'unpinned' && -moved > p.upTolerance)
     return next('pinned', 'show fast', true)
-  if (state.mode === 'unpinned' && moved < 0 && y <= height)
+  // Inside the header's region: where it sits in the page, up to pinStart + height.
+  if (state.mode === 'unpinned' && moved < 0 && y <= height + p.pinStart)
     return next('pinned', 'show inside', true)
   return next(state.mode, 'none', false)
 }
@@ -500,15 +582,29 @@ function frame(p, state, y, time, max, height) {
 const CALLED = { pin: 'pinned', unpin: 'unpinned', unfix: 'unfixed' }
 
 // Every path the rules allow. A frame happens only when the current parent
-// scrolls. Where nothing decides the reference (after a parent change) the
-// path forks: the reference stays at the last frame, or becomes the new
-// parent's position. Paths with the same past and the same state merge.
+// scrolls. Attaching to a scroller (a parent change, or disable turning off)
+// makes its position the reference (L6). Where a frame left pending by the old
+// parent may or may not run against the new one, the path forks. Paths with
+// the same past and the same state merge.
 export function scrollRule(plan) {
   const p = plan.params
+  // L6: attaching while unfixed past the header's region hides the header
+  // (without a transition), so the next scroll up can show it.
+  const past = (y, height) => y > height + p.pinStart
+  const hidesOnAttach = (mode, y, height, props) =>
+    mode === 'unfixed' && !props.pin && !props.disable && past(y, height)
+  const mountMode = hidesOnAttach(
+    'unfixed',
+    plan.mount.y,
+    p.headerHeight,
+    plan.mount
+  )
+    ? 'unpinned'
+    : 'unfixed'
   let paths = [
     {
       state: {
-        mode: 'unfixed',
+        mode: mountMode,
         lastY: plan.mount.y,
         lastTime: null,
         bottom: false,
@@ -529,7 +625,13 @@ export function scrollRule(plan) {
       }
       const keep = (state, entry) =>
         next.push({ state, entries: [...path.entries, entry] })
-      if (step.kind === 'scroll' && step.scroller === step.props.parent) {
+      if (step.kind === 'scroll' && step.props.disable) {
+        // Disabled: nothing listens to the scroller.
+        keep(path.state, still)
+      } else if (
+        step.kind === 'scroll' &&
+        step.scroller === step.props.parent
+      ) {
         // The thresholds read the height measured before this frame.
         const { state, entry } = frame(
           p,
@@ -541,6 +643,9 @@ export function scrollRule(plan) {
         )
         keep(state, entry)
       } else if (step.kind === 'scroll') {
+        keep(path.state, still)
+      } else if (step.kind === 'focus' && !step.headerPresent) {
+        // No header element: there is nothing to focus.
         keep(path.state, still)
       } else if (step.kind === 'focus') {
         // L9: focus moving into a hidden header shows it.
@@ -564,9 +669,71 @@ export function scrollRule(plan) {
           }
         )
       } else if (step.kind === 'toggle' && step.prop === 'parent') {
-        keep(path.state, still)
-        keep({ ...path.state, lastY: step.parentY }, still)
-      } else if (step.kind === 'resize' || step.kind === 'swap') {
+        // L6: attaching to a scroller makes its current position the
+        // reference, and the next frame a first frame.
+        const reattached = {
+          ...path.state,
+          lastY: step.parentY,
+          lastTime: null,
+        }
+        const hide =
+          step.props.parent !== 'none' &&
+          hidesOnAttach(
+            reattached.mode,
+            step.parentY,
+            heights[index],
+            step.props
+          )
+        const attached = hide ? { ...reattached, mode: 'unpinned' } : reattached
+        keep(
+          attached,
+          hide
+            ? {
+                ...still,
+                mode: 'unpinned',
+                snap: true,
+                rule: 'attach',
+                from: path.state.mode,
+              }
+            : still
+        )
+        // A frame the old parent's scroll left pending may run against the
+        // new parent; with no parent it does nothing.
+        if (step.nudgeY !== undefined && step.props.parent !== 'none') {
+          const { state, entry } = frame(
+            p,
+            attached,
+            step.parentY,
+            step.time,
+            step.parentMax,
+            heights[index]
+          )
+          keep(state, entry)
+        }
+      } else if (step.kind === 'toggle' && step.prop === 'disable') {
+        // L5: disabling unfixes; L6: enabling attaches again.
+        const enabled = { ...path.state, lastY: step.parentY, lastTime: null }
+        const state = step.props.disable
+          ? { ...path.state, mode: 'unfixed' }
+          : hidesOnAttach(
+                enabled.mode,
+                step.parentY,
+                heights[index],
+                step.props
+              )
+            ? { ...enabled, mode: 'unpinned' }
+            : enabled
+        keep(state, {
+          ...still,
+          mode: state.mode,
+          rule: 'disable',
+          from: path.state.mode,
+        })
+      } else if (
+        step.kind === 'resize' ||
+        step.kind === 'swap' ||
+        step.kind === 'rerender'
+      ) {
         keep(path.state, still)
       } else {
         throw new Error(
@@ -586,7 +753,7 @@ export function scrollRule(plan) {
     }
     paths = [...seen.values()]
   })
-  return { paths: paths.map(path => path.entries) }
+  return { mount: mountMode, paths: paths.map(path => path.entries) }
 }
 
 // ---------------------------------------------------------------------------
@@ -671,13 +838,15 @@ function createDriver(mountView, readView, { bare = false } = {}) {
     // Listener bookkeeping: the scroll and resize listeners on the window and
     // the div, and the focusin listeners on the header, still attached.
     const named = target =>
-      target === window
-        ? 'window'
-        : target === div
-          ? 'div'
-          : isHeader(target)
-            ? 'header'
-            : null
+      target === document
+        ? 'document'
+        : target === window
+          ? 'window'
+          : target === div
+            ? 'div'
+            : isHeader(target)
+              ? 'header'
+              : null
     const live = new Set()
     const realAdd = EventTarget.prototype.addEventListener
     const realRemove = EventTarget.prototype.removeEventListener
@@ -692,6 +861,7 @@ function createDriver(mountView, readView, { bare = false } = {}) {
         (name !== null &&
           name !== 'header' &&
           (type === 'scroll' || type === 'resize'))
+      if (tracked) adds += 1
       if (tracked)
         live.add({
           target: this,
@@ -730,6 +900,7 @@ function createDriver(mountView, readView, { bare = false } = {}) {
         )
         .sort()
     page.headerHeight = plan.params.headerHeight
+    page.scrollbar = plan.params.scrollbar
     page.window = 0
     page.div = 0
     page[plan.mount.parent] = plan.mount.y
@@ -742,13 +913,28 @@ function createDriver(mountView, readView, { bare = false } = {}) {
     }
     // A late parent is a ref: it returns nothing until the mount has committed.
     let attached = !plan.mount.late
-    const parents = { window: () => window, div: () => (attached ? div : null) }
+    const pageTarget = {
+      window,
+      document,
+      html: document.documentElement,
+      body: document.body,
+    }[plan.mount.pageAs]
+    const parents = {
+      window: () => pageTarget,
+      div: () => (attached ? div : null),
+      none: () => null,
+    }
     const root = createRoot(container)
     let mounted = false
     const instance = React.createRef()
+    // Work counters: renders and setState calls (the component's onChange),
+    // listeners added, and frames queued.
     let renders = 0
-    const onRender = () => {
-      renders += 1
+    let setStates = 0
+    let adds = 0
+    const onRender = {
+      render: () => (renders += 1),
+      setState: () => (setStates += 1),
     }
     // The history may run without a ResizeObserver, as an old browser does.
     if (!plan.params.resizeObserver) delete globalThis.ResizeObserver
@@ -767,7 +953,9 @@ function createDriver(mountView, readView, { bare = false } = {}) {
                 {
                   ...(bare ? {} : headroomProps(plan.params, props)),
                   ...handlers,
-                  ...(bare && props.parent === 'window'
+                  ...(bare &&
+                  props.parent === 'window' &&
+                  plan.mount.pageAs === 'window'
                     ? {}
                     : { parent: parents[props.parent] }),
                 },
@@ -784,9 +972,14 @@ function createDriver(mountView, readView, { bare = false } = {}) {
       })
     const runTimeouts = () => React.act(() => vi.runOnlyPendingTimers())
     const scrollers = { window, div }
+    // The page's scroll fires at the document and bubbles to the window, as
+    // in a browser; an element's scroll fires at the element.
     const scrollTo = (scroller, y) => {
       page[scroller] = y
-      scrollers[scroller].dispatchEvent(new Event('scroll'))
+      const target = scroller === 'window' ? document : scrollers[scroller]
+      target.dispatchEvent(
+        new Event('scroll', { bubbles: scroller === 'window' })
+      )
     }
     const resizes = onlyInitial =>
       React.act(() => deliverResizes(onlyInitial, plan.params.resizeEntries))
@@ -795,9 +988,13 @@ function createDriver(mountView, readView, { bare = false } = {}) {
         ...readView(container, plan.params),
         listening: listening(),
         renders,
+        setStates,
+        adds,
         callbacks: callbacks.splice(0),
       }
       renders = 0
+      setStates = 0
+      adds = 0
       return view
     }
 
@@ -808,10 +1005,15 @@ function createDriver(mountView, readView, { bare = false } = {}) {
       })
       mounted = true
       attached = true
-      resizes(true)
-      runFrames(16)
+      // 'immediate': unmount before the mount's first frame, with no steps.
+      const immediate = plan.pending === 'immediate'
+      if (!immediate) {
+        resizes(true)
+        runFrames(16)
+      }
       observe('mount', snapshot())
-      plan.steps.forEach((step, index) => {
+      ;(immediate ? [] : plan.steps).forEach((step, index) => {
+        const queuedBefore = frames.length
         if (step.kind === 'scroll') {
           if (step.jitter !== null) scrollTo(step.scroller, step.jitter)
           scrollTo(step.scroller, step.y)
@@ -819,8 +1021,11 @@ function createDriver(mountView, readView, { bare = false } = {}) {
           if (step.nudgeY !== undefined)
             scrollTo(step.nudgeScroller, step.nudgeY)
           render(step.props)
+        } else if (step.kind === 'rerender') {
+          render(step.props)
         } else if (step.kind === 'swap') {
-          headerKey += 1
+          if (step.resizeFirst) window.dispatchEvent(new Event('resize'))
+          headerKey = step.drop ? null : (headerKey || 0) + 1
           render(step.props)
         } else if (step.kind === 'resize') {
           page.headerHeight = step.height
@@ -828,28 +1033,38 @@ function createDriver(mountView, readView, { bare = false } = {}) {
           if (step.window) window.dispatchEvent(new Event('resize'))
         } else if (step.kind === 'call') {
           React.act(() => instance.current[step.method]())
-        } else {
+        } else if (container.querySelector('a')) {
           const link = container.querySelector('a')
           link.blur()
           React.act(() => link.focus())
         }
         resizes(true)
+        const queued = frames.length
         runFrames(step.time - frames.time)
         if (step.settle) runTimeouts()
-        observe('step', { step: index + 1, ...snapshot() })
+        observe('step', {
+          step: index + 1,
+          queuedBefore,
+          queued,
+          ...snapshot(),
+        })
       })
       // Work a browser may still have queued when the component unmounts.
       const parentName = plan.steps.length
         ? plan.steps.at(-1).props.parent
         : plan.mount.parent
-      if (plan.pending === 'scroll') scrollTo(parentName, 0)
+      // With no parent, the pending scroll is the window's.
+      if (plan.pending === 'scroll')
+        scrollTo(parentName === 'none' ? 'window' : parentName, 0)
       if (plan.pending === 'resize') window.dispatchEvent(new Event('resize'))
       const loggedBefore = logged.length
       React.act(() => root.unmount())
       mounted = false
+      const queuedAfterUnmount = frames.length
       runFrames(16)
       runTimeouts()
       observe('unmount', {
+        queued: queuedAfterUnmount,
         listeners: listening(),
         observers: observing.size,
         callbacks: callbacks.splice(0),
@@ -884,12 +1099,16 @@ const header = React.createElement(
 
 // The component: container > wrapper > header.
 // Renders are counted in render() itself, so a bailout counts as none.
-const RenderCount = React.createContext(() => {})
+const RenderCount = React.createContext({ render() {}, setState() {} })
 class CountedHeadroom extends Headroom {
   static contextType = RenderCount
   render() {
-    this.context()
+    this.context.render()
     return super.render()
+  }
+  setState(...args) {
+    this.context.setState()
+    return super.setState(...args)
   }
 }
 const componentView = (ref, props) =>
@@ -929,19 +1148,21 @@ export const driveBare = createDriver(componentView, readComponent, {
 // same container > wrapper > header shape. It shows the hook's state in a
 // data attribute; it has no classes or inline styles of its own.
 // A swap gives the header element a new key, so React replaces it and the
-// hook's ref moves to the new element.
+// hook's ref moves to the new element; a null key renders no header at all.
 function HookHeader({ headerKey, ...options }) {
   const { state, ref } = useHeadroom(options)
   return React.createElement(
     'div',
     { 'data-state': state },
-    React.createElement('div', { ref, key: headerKey }, header)
+    headerKey === null
+      ? null
+      : React.createElement('div', { ref, key: headerKey }, header)
   )
 }
 const hookView = (ref, props, headerKey) =>
   React.createElement(HookHeader, { ...props, headerKey })
-const readHook = container => ({
-  mode: container.firstElementChild.getAttribute('data-state') || 'none',
+// The hook renders no classes or inline styles of its own.
+const NO_DOM = {
   classes: [],
   wrapperClasses: [],
   stray: [],
@@ -951,6 +1172,10 @@ const readHook = container => ({
   transition: '',
   wrapperHeight: '',
   wrapperTag: '',
+}
+const readHook = container => ({
+  mode: container.firstElementChild.getAttribute('data-state') || 'none',
+  ...NO_DOM,
 })
 export const driveHook = createDriver(hookView, readHook)
 export const driveHookBare = createDriver(hookView, readHook, { bare: true })
@@ -985,7 +1210,7 @@ export function noThrow(trace) {
 // explains the longest prefix, at its first difference.
 export function matchesPath(law, trace, expected, compare) {
   const seen = checkpoints(trace)
-  const mount = differs('mount', law, seen[0].mode, 'unfixed')
+  const mount = differs('mount', law, seen[0].mode, expected.mount)
   if (mount) return mount
   let best
   for (const entries of expected.paths) {
@@ -1039,7 +1264,19 @@ export function framedInsideGap(plan, seen) {
   )
 }
 
+// The CSS values that move the header up by `offset` (any CSS length): a
+// leading minus is valid CSS only before a plain non-negative length;
+// calc(-1 * …) is valid for every length, including calc() and var().
+function negations(offset) {
+  const plain = /^(\d+\.?\d*|\.\d+)[a-z%]*$/.test(offset)
+  // A unitless 0 is a length only outside calc(): calc(-1 * (0)) is a number.
+  if (plain && /^[\d.]+$/.test(offset)) return [`-${offset}`]
+  const forms = [`calc(-1 * ${offset})`, `calc(-1 * (${offset}))`]
+  return plain ? [`-${offset}`, ...forms] : forms
+}
+
 // The docs' CSS for each state class (index.md:45-65), with unpinnedOffset.
+// `transforms` is the allowed set: any valid way to write the same move.
 export function look(mode, params) {
   const offset =
     params.unpinnedOffset === null
@@ -1047,10 +1284,11 @@ export function look(mode, params) {
       : typeof params.unpinnedOffset === 'number'
         ? `${params.unpinnedOffset}px`
         : params.unpinnedOffset
+  const at = y => `translate3D(0, ${y}, 0)`
   return {
-    unfixed: { position: 'relative', transform: 'translate3D(0, 0, 0)' },
-    pinned: { position: 'fixed', transform: 'translate3D(0, 0, 0)' },
-    unpinned: { position: 'fixed', transform: `translate3D(0, -${offset}, 0)` },
+    unfixed: { position: 'relative', transforms: [at(0)] },
+    pinned: { position: 'fixed', transforms: [at(0)] },
+    unpinned: { position: 'fixed', transforms: negations(offset).map(at) },
   }[mode]
 }
 export const CALLBACK = {

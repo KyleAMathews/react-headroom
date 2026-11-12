@@ -31,7 +31,8 @@
  * above pinStart; unpinned after it ends past the header's height plus
  * pinStart moving down, by more than downTolerance from pinned and by any
  * amount (with no transition) from unfixed; pinned, from unpinned, after it
- * moves up more than upTolerance or moves up into the header's height; and
+ * moves up more than upTolerance or moves up into the header's region (up to
+ * height plus pinStart); and
  * otherwise as it was. A tolerance is a speed: px in one frame. Class and
  * styles (L2): at every checkpoint, the inline styles are the docs' CSS for
  * the state class, the base classes are there, and the wrapper height is the
@@ -51,11 +52,16 @@
  * shown does not re-render. calcHeightOnResize (L19): off keeps the measured
  * height. Transition class (L20): headroom--scrolled after a pin or a hide from
  * pinned, headroom-disable-animation after a snap hide, an unfix or disable.
+ * Work (W): one pending frame per job (scroll, parent lookup), nothing new on
+ * a re-render with the same props, no setState for a step that shows nothing
+ * new, and nothing queued after unmount. Attaching (L6) to a scroller, at
+ * mount, on a parent change or when disable turns off, measures from its
+ * position and hides an in-place header that is already past its region.
  * Each property states its law, authority and limits in full. Sources:
  * www/pages/index.md (the docs at the time), the README (Props), commit
  * messages that state an intent, WCAG 2.2 SC 2.4.11, and decisions by Kyle
- * Mathews (GitHub KyleAMathews), 2026-11-11. Every law also requires that
- * nothing throws or logs a warning.
+ * Mathews (GitHub KyleAMathews), 2026-11-11 and 2026-11-12 (two code reviews'
+ * findings). Every law also requires that nothing throws or logs a warning.
  *
  * The model for L1, L6, L8, L9, L11, L14, L15 and L17 steps the state and the
  * reference once per frame of the current parent, with the header height the
@@ -74,9 +80,8 @@
  *
  * Limits. jsdom has no layout, so the drivers supply the header height, the
  * scrollers' sizes and ResizeObserver delivery; React renders each update
- * before the next event, where a concurrent root in a browser may not. After a
- * parent change nothing decides the reference, so either the last frame's or
- * the new parent's position is accepted. tag, className and style beyond their
+ * before the next event, where a concurrent root in a browser may not. tag,
+ * className and style beyond their
  * defaults are not
  * varied. At mount, onPin may fire or not.
  */
@@ -137,9 +142,9 @@ const LIMITS =
 const scrollRuleLaw = {
   law: {
     statement:
-      'For every history of in-bounds scrolls from a mount at the top, in every order of frames and timeouts, each frame leaves the header unfixed at or above pinStart; unpinned after a frame that ends past headerHeight + pinStart and moves down, by more than downTolerance from pinned and by any amount (with no transition) from unfixed; pinned, from unpinned, after a frame that moves up more than upTolerance, or moves up and ends at or above headerHeight; and otherwise as it was.',
+      'For every history of in-bounds scrolls from a mount at the top, in every order of frames and timeouts, each frame leaves the header unfixed at or above pinStart; unpinned after a frame that ends past headerHeight + pinStart and moves down, by more than downTolerance from pinned and by any amount (with no transition) from unfixed; pinned, from unpinned, after a frame that moves up more than upTolerance, or moves up and ends at or above headerHeight + pinStart (the header region); and otherwise as it was.',
     authority:
-      'www/pages/index.md:3 ("When you scroll down, it slides out of view and slides back in when scrolling up"), :73-74 (tolerances), :79 (pinStart); src/shouldUpdate.js ("We transition to pin regardless of upTolerance"); commit e58b75e ("Avoid flash of animation when scrolling from top"); decisions by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: a tolerance compares the distance of one frame (a speed); only an unpinned header shows on the way up; an unfixed header past headerHeight + pinStart hides at any speed.',
+      'www/pages/index.md:3 ("When you scroll down, it slides out of view and slides back in when scrolling up"), :73-74 (tolerances), :79 (pinStart); src/shouldUpdate.js ("We transition to pin regardless of upTolerance"); commit e58b75e ("Avoid flash of animation when scrolling from top"); decisions by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: a tolerance compares the distance of one frame (a speed); only an unpinned header shows on the way up; an unfixed header past headerHeight + pinStart hides at any speed; 2026-11-12: the header region for showing is headerHeight + pinStart, as for hiding (review finding R7).',
     limits: `Mount at the top, positions in bounds, no prop changes. ${LIMITS}`,
   },
   histories: {
@@ -147,6 +152,7 @@ const scrollRuleLaw = {
     runs: 40,
     fixedSeeds: [1],
     states: [
+      'showed inside the region below pinStart',
       'hid from unfixed',
       'hid on the way down',
       'showed on a fast scroll up',
@@ -159,6 +165,26 @@ const scrollRuleLaw = {
     ],
     measured: ['two scroll events in one frame', 'moved exactly a tolerance'],
     constructed: [
+      {
+        // pinStart above the header's height: the region is pinStart to
+        // pinStart + height, and a slow scroll up into it shows the header.
+        name: 'pinStart 100, slow scroll up into the header region',
+        enters: ['showed inside the region below pinStart'],
+        build: g => {
+          const params = {
+            ...g.params,
+            headerHeight: Math.min(g.params.headerHeight, 60),
+            pinStart: 100,
+            upTolerance: Math.max(2, g.params.upTolerance),
+          }
+          const end = params.headerHeight + params.pinStart
+          return {
+            ...g,
+            params,
+            actions: [sc(end + 1), sc(-1)],
+          }
+        },
+      },
       {
         name: 'hide, show fast, hide again',
         enters: [
@@ -281,6 +307,13 @@ const scrollRuleLaw = {
     const p = plan.params
     const found = new Set()
     expected.paths[0].forEach((e, i) => {
+      if (
+        e.rule === 'show inside' &&
+        e.from === 'unpinned' &&
+        e.y > p.headerHeight &&
+        p.pinStart > 0
+      )
+        found.add('showed inside the region below pinStart')
       if (e.snap) found.add('hid from unfixed')
       if (e.rule === 'hide' && e.from === 'pinned')
         found.add('hid on the way down')
@@ -387,6 +420,7 @@ oracleProperty({
       'resized with a div parent',
       'fractional height',
       'unpinned with an offset',
+      'unpinned with a zero offset',
     ],
     measured: ['settled pinned', 'settled unpinned', 'wrapper height given'],
     constructed: [
@@ -433,6 +467,21 @@ oracleProperty({
           mount: { ...top, parent: 'div' },
           params: { ...g.params, wrapperHeight: null, resizeObserver: true },
           actions: [rs(g.params.headerHeight > 60 ? 40 : 90, 0, true)],
+        }),
+      },
+      {
+        // '0' is a CSS length, but calc(-1 * (0)) is a number and invalid.
+        name: 'hide with a zero offset',
+        enters: ['unpinned with a zero offset'],
+        build: g => ({
+          ...g,
+          mount: top,
+          params: {
+            ...g.params,
+            unpinnedOffset: '0',
+            disableInlineStyles: false,
+          },
+          actions: [sc(far(g.params)), sc(12)],
         }),
       },
       {
@@ -489,7 +538,11 @@ oracleProperty({
           box: inline
             ? { top: '0px', left: '0px', right: '0px', zIndex: '1' }
             : { top: '', left: '', right: '', zIndex: '' },
-          transform: inline ? css.transform : '',
+          transform: !inline
+            ? ''
+            : css.transforms.includes(s.transform)
+              ? s.transform
+              : css.transforms[0],
           transition: inline && scrolled,
           wrapperHeight: expected.wrapperHeight[i],
         },
@@ -519,6 +572,14 @@ oracleProperty({
         !plan.params.disableInlineStyles
       ) {
         found.add('unpinned with an offset')
+        if (
+          step.settle !== undefined &&
+          s &&
+          s.mode === 'unpinned' &&
+          plan.params.unpinnedOffset === '0' &&
+          !plan.params.disableInlineStyles
+        )
+          found.add('unpinned with a zero offset')
       }
       if (step.kind !== 'resize' || plan.params.wrapperHeight !== null) return
       if (!plan.params.resizeObserver)
@@ -588,12 +649,24 @@ oracleProperty({
     runs: 40,
     fixedSeeds: [1],
     states: [
+      'hidden on enabling',
       'frame inside the unfix gap',
       'onPin fired',
       'onUnpin fired',
       'onUnfix fired',
     ],
     constructed: [
+      {
+        // Mounted disabled partway down; enabling attaches and hides the
+        // header, a change after mount, so onUnpin fires.
+        name: 'mount disabled mid-page, then enable',
+        enters: ['hidden on enabling'],
+        build: g => ({
+          ...g,
+          mount: { ...top, y: 1000, disable: true },
+          actions: [tg('disable')],
+        }),
+      },
       {
         name: 'two frames at the top inside the unfix gap',
         enters: ['frame inside the unfix gap'],
@@ -644,6 +717,17 @@ oracleProperty({
     const seen = checkpoints(trace)
     const found = new Set()
     if (framedInsideGap(plan, seen)) found.add('frame inside the unfix gap')
+    plan.steps.forEach((step, n) => {
+      if (
+        step.kind === 'toggle' &&
+        step.prop === 'disable' &&
+        !step.props.disable &&
+        seen[n + 1] &&
+        seen[n + 1].mode === 'unpinned' &&
+        seen[n].mode === 'unfixed'
+      )
+        found.add('hidden on enabling')
+    })
     for (const s of seen) for (const c of s.callbacks) found.add(`${c} fired`)
     return found
   },
@@ -855,7 +939,7 @@ const disableLaw = {
       'For every history, at the mount and after every step while disable is true, the header is unfixed, nothing listens to its scroller, and no callback fires (whatever pin, focus or an instance method asks), except that the step that turns disable on fires onUnfix once when the header was not unfixed before it.',
     authority:
       'www/pages/index.md:76 ("disable — disable pinning and unpinning"), :72 (onUnfix, "called when header position is no longer fixed"); the v3.2 source comment "Add/remove event listeners when re-enabled/disabled".',
-    limits: `What the header does on the first frame after disable turns off is not judged here. The window is the scroller. ${LIMITS}`,
+    limits: `The first frame after disable turns off is L6's. The window is the scroller. ${LIMITS}`,
   },
   histories: {
     arbitrary: historiesOf({
@@ -1067,20 +1151,34 @@ oracleProperty({
 const parentLaw = {
   law: {
     statement:
-      'For every history of scrolls on the parent and on another element, and changes of parent between the window and a scrolling element, the header follows the scroll rule for frames of the current parent only, through passive listeners; a parent() that returns nothing at mount does not throw, and the element it returns by the first frame drives the header.',
+      "For every history of scrolls on the parent and on another element, changes of parent (to the window, a scrolling element or nothing) and toggles of disable, the header follows the scroll rule for frames of the current parent only, through passive listeners (a parent of document, document.documentElement or document.body is the page, as the window is); each time it attaches to a scroller (a parent change, or disable turning off), the next frame measures from that scroller's position at attach and counts as a first frame, and if the header is unfixed past the header's height plus pinStart it hides without a transition (silently at mount, with onUnpin later); a parent() that returns nothing does not throw, and the element it returns by the first frame drives the header.",
     authority:
-      'www/pages/index.md:78 ("parent — provide a custom \'parent\' element for scroll events. parent should be a function which resolves to the desired element"); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: parent may change while mounted, and the listeners follow it; issue #110 (a ref-backed parent is empty during mount); commit 3f1b2f5 ("feat: support passive event listeners").',
-    limits: `After a parent change the reference is either the last frame's position or the new parent's; both are accepted. Mount at the top; pin and disable stay false. ${LIMITS}`,
+      'www/pages/index.md:78 ("parent — provide a custom \'parent\' element for scroll events. parent should be a function which resolves to the desired element"); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: parent may change while mounted, and the listeners follow it; issue #110 (a ref-backed parent is empty during mount); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: on attach the reference is the scroller\'s current position (review finding R6); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: a header that attaches past its region starts hidden, so a page restored mid-scroll shows it on the first scroll up (review finding T1); 2026-11-12: the document, its root element and the body name the page, as in 3.2.1 (review finding T4); commit 3f1b2f5 ("feat: support passive event listeners").',
+    limits: `pin stays false. ${LIMITS}`,
   },
   histories: {
     arbitrary: historiesOf({
+      mountY: fc.oneof(fc.constant(0), anywhere),
       mountParent: fc.constantFrom('window', 'div', 'late'),
+      pageAs: fc.constantFrom('window', 'document', 'html', 'body'),
       scrollOn: ['parent', 'other'],
-      toggles: ['parent'],
+      toggles: ['parent', 'disable'],
+      nudges: true,
     }),
     runs: 40,
     fixedSeeds: [1],
     states: [
+      'mounted exactly at the end of the region',
+      'the page named through the body',
+      'the page named through the root element',
+      'the page named through the document',
+      'mounted mid-page, then scrolled up',
+      'enabled mid-page, then scrolled up',
+      'scrolled down right after a parent change',
+      'hid on the first frame after a parent change',
+      'showed on the first frame after a parent change',
+      'scrolled down right after enabling',
+      'parent emptied with a frame pending',
       'listening on the window',
       'parent changed',
       'scrolled the new parent after a change',
@@ -1088,6 +1186,159 @@ const parentLaw = {
       'parent resolved after mount',
     ],
     constructed: [
+      {
+        // Mounted exactly at headerHeight + pinStart: not past the region, so
+        // it stays in place.
+        name: 'mount exactly at the end of the header region',
+        enters: ['mounted exactly at the end of the region'],
+        build: g => ({
+          ...g,
+          mount: { ...top, y: g.params.headerHeight + g.params.pinStart },
+          actions: [sc(0)],
+        }),
+      },
+      {
+        name: 'the body as parent: hide, then show',
+        enters: ['the page named through the body'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'body' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        name: 'the root element as parent: hide, then show',
+        enters: ['the page named through the root element'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'html' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // parent={() => document} (or its root element, or the body) is the
+        // page, as it was in 3.2.1.
+        name: 'the document as parent: hide, then show',
+        enters: ['the page named through the document'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pageAs: 'document' },
+          actions: [sc(far(g.params)), sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        // A page restored mid-scroll (Back navigation): the header starts
+        // hidden, and the first fast scroll up shows it.
+        name: 'mount at 1000, then scroll up',
+        enters: ['mounted mid-page, then scrolled up'],
+        build: g => ({
+          ...g,
+          mount: { ...top, y: 1000 },
+          actions: [sc(-(g.params.upTolerance + 1))],
+        }),
+      },
+      {
+        name: 'disable, scroll far down, enable, scroll up',
+        enters: ['enabled mid-page, then scrolled up'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [
+            tg('disable'),
+            sc(400),
+            sc(400),
+            tg('disable'),
+            sc(-(g.params.upTolerance + 1)),
+          ],
+        }),
+      },
+      {
+        // Hidden on the window; the div sits at 300. The first frame after the
+        // switch moves 50px up from 300: it shows. Measured from anywhere but
+        // 300, it would not.
+        name: 'hidden on the window, switch to the div, show on the first frame',
+        enters: ['showed on the first frame after a parent change'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [
+            sc(far(g.params)),
+            sc(400),
+            sc(300, true, 'other'),
+            tg('parent'),
+            sc(-50),
+          ],
+        }),
+      },
+      {
+        // Pinned on the window; the div sits at 300. The first frame after the
+        // switch moves 50px down from 300, past the header: it hides.
+        name: 'pinned on the window, switch to the div, hide on the first frame',
+        enters: ['hid on the first frame after a parent change'],
+        build: g => {
+          const p = g.params
+          return {
+            ...g,
+            mount: top,
+            actions: [
+              sc(far(p)),
+              sc(-(p.upTolerance + 1)),
+              sc(300, true, 'other'),
+              tg('parent'),
+              sc(50),
+            ],
+          }
+        },
+      },
+      {
+        // Hidden far down the window; the div sits at 300. After the switch
+        // a 10px scroll down must not count as a 1000px move up.
+        name: 'hidden on the window, switch to the div, scroll it down',
+        enters: ['scrolled down right after a parent change'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [
+            sc(far(g.params)),
+            sc(400),
+            sc(400),
+            sc(300, true, 'other'),
+            tg('parent'),
+            sc(10),
+          ],
+        }),
+      },
+      {
+        // Hidden at 1000+, disabled, scrolled to 300, enabled, then down:
+        // the frame measures from 300.
+        name: 'hidden, disable, scroll up a lot, enable, scroll down',
+        enters: ['scrolled down right after enabling'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [
+            sc(far(g.params)),
+            sc(400),
+            sc(400),
+            tg('disable'),
+            sc(-400),
+            sc(-400),
+            tg('disable'),
+            sc(10),
+          ],
+        }),
+      },
+      {
+        // The parent's element goes away (a ref to a container that
+        // unmounted) while a scroll's frame is still pending.
+        name: 'scroll the div, then its element goes away before the frame',
+        enters: ['parent emptied with a frame pending'],
+        build: g => ({
+          ...g,
+          mount: { ...top, parent: 'div' },
+          actions: [sc(far(g.params)), tg('parent', true, 40)],
+        }),
+      },
       {
         name: 'pinned, move to a new parent, scroll both',
         enters: [
@@ -1143,6 +1394,15 @@ const parentLaw = {
       )
       if (found) return found
     }
+    // A header that starts hidden does so silently.
+    const silent = differs(
+      'mount',
+      'parent',
+      seen[0].callbacks,
+      [],
+      'callbacks at mount'
+    )
+    if (silent) return silent
     return matchesPath('parent', trace, expected, modeAndSnap) ?? pass
   },
   reached: (plan, trace) => {
@@ -1152,6 +1412,107 @@ const parentLaw = {
       found.add('listening on the window')
     if (plan.mount.late && plan.steps.length > 0)
       found.add('parent resolved after mount')
+    for (const step of plan.steps) {
+      if (
+        step.kind === 'toggle' &&
+        step.props.parent === 'none' &&
+        step.nudgeY !== undefined
+      )
+        found.add('parent emptied with a frame pending')
+    }
+    if (
+      plan.mount.pageAs !== 'window' &&
+      plan.steps.some(
+        step =>
+          step.kind === 'scroll' &&
+          step.scroller === 'window' &&
+          step.props.parent === 'window'
+      )
+    )
+      found.add('the page named through the document')
+    if (
+      plan.mount.y === plan.params.headerHeight + plan.params.pinStart &&
+      plan.mount.y > 0
+    )
+      found.add('mounted exactly at the end of the region')
+    const pageScrolled = plan.steps.some(
+      step =>
+        step.kind === 'scroll' &&
+        step.scroller === 'window' &&
+        step.props.parent === 'window'
+    )
+    if (pageScrolled && plan.mount.pageAs === 'body')
+      found.add('the page named through the body')
+    if (pageScrolled && plan.mount.pageAs === 'html')
+      found.add('the page named through the root element')
+    const p = plan.params
+    const first = plan.steps[0]
+    if (
+      plan.mount.y > p.headerHeight + p.pinStart &&
+      first &&
+      first.kind === 'scroll' &&
+      first.scroller === first.props.parent &&
+      plan.mount.y - first.y > p.upTolerance
+    )
+      found.add('mounted mid-page, then scrolled up')
+    plan.steps.forEach((step, n) => {
+      const after = plan.steps[n + 1]
+      if (
+        after &&
+        step.kind === 'toggle' &&
+        step.prop === 'disable' &&
+        !step.props.disable &&
+        step.parentY > p.headerHeight + p.pinStart &&
+        after.kind === 'scroll' &&
+        after.scroller === after.props.parent &&
+        step.parentY - after.y > p.upTolerance
+      )
+        found.add('enabled mid-page, then scrolled up')
+    })
+    plan.steps.forEach((step, n) => {
+      const next = plan.steps[n + 1]
+      if (
+        !next ||
+        next.kind !== 'scroll' ||
+        next.scroller !== next.props.parent ||
+        next.y <= step.parentY
+      )
+        return
+      if (
+        step.kind === 'toggle' &&
+        step.prop === 'parent' &&
+        step.props.parent !== 'none'
+      )
+        found.add('scrolled down right after a parent change')
+      if (
+        step.kind === 'toggle' &&
+        step.prop === 'parent' &&
+        step.props.parent !== 'none' &&
+        next.y - step.parentY > plan.params.downTolerance &&
+        next.y > plan.params.headerHeight + plan.params.pinStart
+      )
+        found.add('hid on the first frame after a parent change')
+    })
+    plan.steps.forEach((step, n) => {
+      const next = plan.steps[n + 1]
+      if (
+        next &&
+        step.kind === 'toggle' &&
+        step.prop === 'parent' &&
+        step.props.parent !== 'none' &&
+        next.kind === 'scroll' &&
+        next.scroller === next.props.parent &&
+        step.parentY - next.y > plan.params.upTolerance &&
+        next.y > plan.params.pinStart
+      )
+        found.add('showed on the first frame after a parent change')
+      if (
+        step.kind === 'toggle' &&
+        step.prop === 'disable' &&
+        !step.props.disable
+      )
+        found.add('scrolled down right after enabling')
+    })
     let changed = false
     for (const step of plan.steps) {
       if (step.kind === 'toggle') {
@@ -1220,6 +1581,7 @@ const cleanupLaw = {
     runs: 40,
     fixedSeeds: [1],
     states: [
+      'header dropped with a resize pending',
       'unmounted with a frame pending',
       'unmounted with a resize pending',
       'unmounted after a parent change',
@@ -1228,6 +1590,22 @@ const cleanupLaw = {
       'unmounted after tracking toggled',
     ],
     constructed: [
+      {
+        // Without a ResizeObserver a window resize queues a measure; the
+        // header element unmounts before that frame runs.
+        name: 'no ResizeObserver, hide, drop the header with a resize pending',
+        enters: ['header dropped with a resize pending'],
+        build: g => ({
+          ...g,
+          params: { ...g.params, resizeObserver: false },
+          mount: top,
+          actions: [
+            sc(far(g.params)),
+            { kind: 'swap', drop: true, resizeFirst: true, settle: true },
+            { kind: 'swap', drop: false, resizeFirst: false, settle: true },
+          ],
+        }),
+      },
       {
         name: 'pinned, then unmount with a scroll to the top pending',
         enters: ['unmounted with a frame pending'],
@@ -1260,15 +1638,20 @@ const cleanupLaw = {
           ...g,
           params: { ...g.params, strictMode: true },
           mount: top,
-          actions: [sc(far(g.params)), { kind: 'swap', settle: true }],
+          actions: [
+            sc(far(g.params)),
+            { kind: 'swap', drop: false, resizeFirst: false, settle: true },
+          ],
           pending: 'scroll',
         }),
       },
       {
+        // With a ResizeObserver, so a second observer would be seen.
         name: 'toggle tracking off and on, then unmount',
         enters: ['unmounted after tracking toggled'],
         build: g => ({
           ...g,
+          params: { ...g.params, resizeObserver: true },
           mount: top,
           actions: [tg('calcHeightOnResize'), tg('calcHeightOnResize')],
           pending: 'resize',
@@ -1295,7 +1678,12 @@ const cleanupLaw = {
       differs(
         'unmount',
         'cleanup',
-        unmountOf(trace).value,
+        (({ listeners, observers, callbacks, logged }) => ({
+          listeners,
+          observers,
+          callbacks,
+          logged,
+        }))(unmountOf(trace).value),
         expected,
         'left behind or ran after unmount'
       ) ?? pass
@@ -1304,6 +1692,16 @@ const cleanupLaw = {
   reached: (plan, trace) => {
     const seen = checkpoints(trace)
     const found = new Set()
+    if (
+      plan.steps.some(
+        step =>
+          step.kind === 'swap' &&
+          step.drop &&
+          step.resizeFirst &&
+          !plan.params.resizeObserver
+      )
+    )
+      found.add('header dropped with a resize pending')
     if (plan.pending === 'scroll') found.add('unmounted with a frame pending')
     if (plan.params.strictMode) found.add('unmounted in StrictMode')
     if (
@@ -1356,6 +1754,28 @@ oracleProperty({
   model: cleanupLaw.model,
   check: cleanupLaw.check,
   id: 'headroom cleanup',
+  // The component always renders its header, so its swaps never drop it.
+  histories: {
+    ...cleanupLaw.histories,
+    arbitrary: historiesOf({
+      mountY: anywhere,
+      mountPin: either,
+      mountDisable: either,
+      mountParent: everyParent,
+      scrollOn: ['parent', 'other'],
+      toggles: ['pin', 'disable', 'parent', 'calcHeightOnResize'],
+      resizes: true,
+      swaps: true,
+      drops: false,
+      pending: fc.constantFrom('none', 'scroll', 'resize'),
+    }),
+    states: cleanupLaw.histories.states.filter(
+      state => state !== 'header dropped with a resize pending'
+    ),
+    constructed: cleanupLaw.histories.constructed.filter(
+      c => !c.name.includes('drop the header')
+    ),
+  },
   owns: ['src/index.js', 'src/core.js'],
   driver: drive,
 })
@@ -1375,17 +1795,60 @@ oracleProperty({
 const overscrollLaw = {
   law: {
     statement:
-      'For every history of scrolls that may pass up to 80px beyond the top or the bottom, a frame past either end leaves the header as it was and does not move the reference, and every in-bounds frame follows the scroll rule.',
+      'For every history of scrolls that may pass up to 80px beyond the top or the bottom, a frame more than 1px past either end leaves the header as it was and does not move the reference, and every in-bounds frame follows the scroll rule.',
     authority:
-      'Commit c17a809 ("Ignore OSX bounce", PR #90); issue #195; decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: overscroll changes nothing, including the reference.',
+      'Commit c17a809 ("Ignore OSX bounce", PR #90); issue #195; decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: overscroll changes nothing, including the reference; 2026-11-12: up to 1px past either end is in bounds, as browser zoom gives fractional positions (review finding R5).',
     limits: `The window is the scroller; mount at the top, no prop changes. ${LIMITS}`,
   },
   histories: {
     arbitrary: historiesOf({}),
     runs: 40,
     fixedSeeds: [1],
-    states: ['bounced past the bottom', 'bounced past the top'],
+    states: [
+      'exactly 1px past the top',
+      'exactly 1px past the bottom',
+      'bounced past the bottom',
+      'bounced past the top',
+    ],
     constructed: [
+      {
+        // Pinned near the top, then exactly 1px past it: in bounds, so the
+        // header unfixes at pinStart or above.
+        name: 'pinned, then exactly 1px past the top',
+        enters: ['exactly 1px past the top'],
+        build: g => {
+          const p = g.params
+          const shown = far(p) - (p.upTolerance + 1)
+          return {
+            ...g,
+            params: { ...g.params, scrollbar: 0 },
+            mount: top,
+            actions: [sc(far(p)), sc(-(p.upTolerance + 1)), sc(-(shown + 1))],
+          }
+        },
+      },
+      {
+        // Pinned near the bottom, then exactly 1px past it while moving down:
+        // in bounds, so it hides.
+        name: 'pinned near the bottom, then exactly 1px past it',
+        enters: ['exactly 1px past the bottom'],
+        build: g => {
+          const steps = []
+          for (let y = 0; y < MAX_Y - 100; y += 400)
+            steps.push(sc(Math.min(400, MAX_Y - 100 - y)))
+          return {
+            ...g,
+            params: {
+              ...g.params,
+              scrollbar: 0,
+              downTolerance: 0,
+              upTolerance: 0,
+            },
+            mount: top,
+            actions: [...steps, sc(-1), sc(102)],
+          }
+        },
+      },
       {
         name: 'hide, reach the bottom, bounce, settle',
         enters: ['bounced past the bottom'],
@@ -1395,6 +1858,7 @@ const overscrollLaw = {
             steps.push(sc(Math.min(400, MAX_Y - y)))
           return {
             ...g,
+            params: { ...g.params, scrollbar: 0 },
             mount: top,
             actions: [...steps.slice(0, 12), sc(40), sc(-40)],
           }
@@ -1428,6 +1892,15 @@ const overscrollLaw = {
     pass,
   reached: plan => {
     const found = new Set()
+    for (const step of plan.steps) {
+      if (step.kind === 'scroll' && step.y === -1)
+        found.add('exactly 1px past the top')
+      if (
+        step.kind === 'scroll' &&
+        step.y === MAX_Y + plan.params.scrollbar + 1
+      )
+        found.add('exactly 1px past the bottom')
+    }
     for (const step of plan.steps) {
       if (step.kind === 'scroll' && step.y > MAX_Y)
         found.add('bounced past the bottom')
@@ -1483,11 +1956,28 @@ const focusLaw = {
     runs: 40,
     fixedSeeds: [1],
     states: [
+      'header dropped with a resize pending',
       'focused while hidden',
       'focused while shown',
       'focused a replaced header',
     ],
     constructed: [
+      {
+        // Without a ResizeObserver a window resize queues a measure; the
+        // header element unmounts before that frame runs.
+        name: 'no ResizeObserver, hide, drop the header with a resize pending',
+        enters: ['header dropped with a resize pending'],
+        build: g => ({
+          ...g,
+          params: { ...g.params, resizeObserver: false },
+          mount: top,
+          actions: [
+            sc(far(g.params)),
+            { kind: 'swap', drop: true, resizeFirst: true, settle: true },
+            { kind: 'swap', drop: false, resizeFirst: false, settle: true },
+          ],
+        }),
+      },
       {
         // The hook's ref moves to a new element; focus there must still pin.
         name: 'hide, replace the header element, then Tab into it',
@@ -1495,7 +1985,11 @@ const focusLaw = {
         build: g => ({
           ...g,
           mount: top,
-          actions: [sc(far(g.params)), { kind: 'swap', settle: true }, fo()],
+          actions: [
+            sc(far(g.params)),
+            { kind: 'swap', drop: false, resizeFirst: false, settle: true },
+            fo(),
+          ],
         }),
       },
       {
@@ -1522,6 +2016,16 @@ const focusLaw = {
     pass,
   reached: (plan, trace, expected) => {
     const found = new Set()
+    if (
+      plan.steps.some(
+        step =>
+          step.kind === 'swap' &&
+          step.drop &&
+          step.resizeFirst &&
+          !plan.params.resizeObserver
+      )
+    )
+      found.add('header dropped with a resize pending')
     let swapped = false
     expected.paths[0].forEach((e, i) => {
       if (plan.steps[i].kind === 'swap') swapped = true
@@ -1555,6 +2059,17 @@ oracleProperty({
   model: focusLaw.model,
   check: focusLaw.check,
   id: 'headroom focus',
+  // The component always renders its header, so its swaps never drop it.
+  histories: {
+    ...focusLaw.histories,
+    arbitrary: historiesOf({ focus: true, swaps: true, drops: false }),
+    states: focusLaw.histories.states.filter(
+      state => state !== 'header dropped with a resize pending'
+    ),
+    constructed: focusLaw.histories.constructed.filter(
+      c => !c.name.includes('drop the header')
+    ),
+  },
   owns: ['src/index.js', 'src/core.js'],
   driver: drive,
 })
@@ -1670,8 +2185,26 @@ oracleProperty({
       'reached the bottom',
       'left the bottom',
       'one pixel above the bottom',
+      'bottom with a horizontal scrollbar',
+      'fractional bottom',
     ],
     constructed: [
+      {
+        // Zoom: the true bottom is 0.4px past the rounded scrollHeight.
+        name: 'scroll to 0.4px past the rounded bottom',
+        enters: ['fractional bottom'],
+        build: g => {
+          const steps = []
+          for (let y = 0; y < MAX_Y - 2; y += 400)
+            steps.push(sc(Math.min(400, MAX_Y - 2 - y)))
+          return {
+            ...g,
+            params: { ...g.params, scrollbar: 0 },
+            mount: top,
+            actions: [...steps, sc(2, true, 'parent', 16, 0.4)],
+          }
+        },
+      },
       {
         name: 'scroll to one pixel above the bottom',
         enters: ['one pixel above the bottom'],
@@ -1679,7 +2212,12 @@ oracleProperty({
           const steps = []
           for (let y = 0; y < MAX_Y - 1; y += 400)
             steps.push(sc(Math.min(400, MAX_Y - 1 - y)))
-          return { ...g, mount: top, actions: steps }
+          return {
+            ...g,
+            params: { ...g.params, scrollbar: 0 },
+            mount: top,
+            actions: steps,
+          }
         },
       },
       {
@@ -1691,8 +2229,27 @@ oracleProperty({
             steps.push(sc(Math.min(400, MAX_Y - y)))
           return {
             ...g,
+            params: { ...g.params, scrollbar: 0 },
             mount: top,
             actions: [...steps, sc(30), sc(-30), sc(-12)],
+          }
+        },
+      },
+      {
+        // A 15px horizontal scrollbar: the page scrolls 15px further than
+        // scrollHeight - innerHeight.
+        name: 'scroll to the bottom of a page with a horizontal scrollbar',
+        enters: ['bottom with a horizontal scrollbar'],
+        build: g => {
+          const max = MAX_Y + 15
+          const steps = []
+          for (let y = 0; y < max; y += 400)
+            steps.push(sc(Math.min(400, max - y)))
+          return {
+            ...g,
+            params: { ...g.params, scrollbar: 15 },
+            mount: top,
+            actions: steps,
           }
         },
       },
@@ -1722,6 +2279,14 @@ oracleProperty({
   reached: (plan, trace, expected) => {
     const found = new Set()
     expected.paths[0].forEach((e, i, all) => {
+      if (
+        e.bottom &&
+        e.y > MAX_Y + plan.params.scrollbar &&
+        e.y <= MAX_Y + plan.params.scrollbar + 1
+      )
+        found.add('fractional bottom')
+      if (e.bottom && plan.params.scrollbar > 0)
+        found.add('bottom with a horizontal scrollbar')
       if (e.bottom) found.add('reached the bottom')
       if (e.bottom && e.y === MAX_Y - 1) found.add('one pixel above the bottom')
       if (i > 0 && all[i - 1].bottom && !e.bottom) found.add('left the bottom')
@@ -1846,9 +2411,9 @@ oracleProperty({
   owns: ['src/index.js', 'src/core.js'],
   law: {
     statement:
-      "For every history of scrolls at 16, 33 or 100ms per frame, when a frame pins or unpins the header with a transition, the inline transition lasts round(headerHeight × the frame's gap ÷ the distance it moved) clamped to 100-400ms with matchScrollSpeed (a first frame's gap counts as 16ms), and 200ms without it.",
+      "For every history of scrolls at 16, 33, 100, 101 or 3000ms per frame, when a frame pins or unpins the header with a transition, the inline transition lasts round(headerHeight × the frame's gap ÷ the distance it moved) clamped to 100-400ms with matchScrollSpeed (a first frame's gap, and any gap over 100ms, counts as 16ms: it starts a new scroll), and 200ms without it.",
     authority:
-      'Issue #94 ("So header moves into view at same speed person is scrolling"); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: opt-in through matchScrollSpeed, clamped to 100-400ms.',
+      'Issue #94 ("So header moves into view at same speed person is scrolling"); decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-11: opt-in through matchScrollSpeed, clamped to 100-400ms; 2026-11-12: a gap over 100ms starts a new scroll and counts as one frame (review finding T2).',
     limits: `Inline styles on; the window is the scroller; mount at the top. ${LIMITS}`,
   },
   histories: {
@@ -1860,8 +2425,28 @@ oracleProperty({
       'matched a slow scroll',
       'fixed 200ms',
       'unpinned at a new speed',
+      'flicked after a pause',
     ],
     constructed: [
+      {
+        // Hidden, a 3s pause, then a 60px flick up in one frame: a fast slide.
+        name: 'hidden, pause 3s, flick up',
+        enters: ['flicked after a pause'],
+        build: g => {
+          const p = {
+            ...g.params,
+            matchScrollSpeed: true,
+            disableInlineStyles: false,
+            upTolerance: 0,
+          }
+          return {
+            ...g,
+            params: p,
+            mount: top,
+            actions: [sc(far(p)), sc(400), sc(-60, true, 'parent', 3000)],
+          }
+        },
+      },
       {
         name: 'hide, then show fast at 33ms per frame',
         enters: ['matched a fast scroll'],
@@ -1961,6 +2546,16 @@ oracleProperty({
   reached: (plan, trace, expected) => {
     const found = new Set()
     if (plan.params.disableInlineStyles) return found
+    plan.steps.forEach((step, n) => {
+      const e = expected.paths[0][n]
+      if (
+        step.kind === 'scroll' &&
+        step.gap > 100 &&
+        e.ms !== null &&
+        plan.params.matchScrollSpeed
+      )
+        found.add('flicked after a pause')
+    })
     let lastMs = null
     for (const e of expected.paths[0]) {
       if (
@@ -2153,6 +2748,8 @@ const defaultParams = fc.record({
   matchScrollSpeed: fc.constant(DOC_DEFAULTS.matchScrollSpeed),
   calcHeightOnResize: fc.constant(DOC_DEFAULTS.calcHeightOnResize),
   resizeObserver: fc.constant(true),
+  strictMode: fc.constant(false),
+  scrollbar: fc.constant(0),
   resizeEntries: fc.constant('array'),
   wrapperHeight: fc.constant(DOC_DEFAULTS.wrapperHeight),
 })
@@ -2216,7 +2813,9 @@ const defaultsLaw = {
         },
         {
           position: css.position,
-          transform: css.transform,
+          transform: css.transforms.includes(s.transform)
+            ? s.transform
+            : css.transforms[0],
           transitionMs: scrolled ? 200 : null,
           wrapperHeight: expected.wrapperHeight[i],
           wrapperTag: 'div',
@@ -2274,7 +2873,7 @@ oracleProperty({
 // L18: no idle renders.
 // ---------------------------------------------------------------------------
 
-const shown = s => ({
+const shownOf = s => ({
   mode: s.mode,
   classes: s.classes,
   wrapperClasses: s.wrapperClasses,
@@ -2329,7 +2928,8 @@ oracleProperty({
     for (let i = 1; i < seen.length; i++) {
       const idle =
         seen[i].callbacks.length === 0 &&
-        JSON.stringify(shown(seen[i])) === JSON.stringify(shown(seen[i - 1]))
+        JSON.stringify(shownOf(seen[i])) ===
+          JSON.stringify(shownOf(seen[i - 1]))
       if (!idle) continue
       const found = differs(
         at(i),
@@ -2347,7 +2947,7 @@ oracleProperty({
     const found = new Set()
     plan.steps.forEach((step, i) => {
       const s = seen[i + 1]
-      if (!s || JSON.stringify(shown(s)) !== JSON.stringify(shown(seen[i])))
+      if (!s || JSON.stringify(shownOf(s)) !== JSON.stringify(shownOf(seen[i])))
         return
       if (step.kind === 'scroll' && step.scroller === step.props.parent)
         found.add('idle frame')
@@ -2525,7 +3125,12 @@ oracleProperty({
     // The flag the last change owes: a pin, a call to unpin(), or a hide from
     // pinned has a transition; a hide from unfixed by scrolling, an unfix, or
     // disable has none. Before the first change, neither.
-    let owed = seen[0].mode === 'pinned' ? 'headroom--scrolled' : null
+    let owed =
+      seen[0].mode === 'pinned'
+        ? 'headroom--scrolled'
+        : seen[0].mode === 'unpinned'
+          ? 'headroom-disable-animation'
+          : null
     for (let i = 0; i < seen.length; i++) {
       if (i > 0 && seen[i].mode !== seen[i - 1].mode) {
         const step = plan.steps[i - 1]
@@ -2593,4 +3198,274 @@ oracleProperty({
       },
     },
   ],
+})
+
+// ---------------------------------------------------------------------------
+// W: work. Counted from the drivers: frames queued before each step's frame
+// runs, listeners added in the step, the component's setState calls (its
+// onChange), and frames still queued right after unmount.
+// ---------------------------------------------------------------------------
+
+const workLaw = {
+  law: {
+    statement:
+      "For every history, the frames queued before a frame runs hold at most one scroll frame (exactly one after the current parent scrolls, however many scroll events it fired, none while disabled) and at most one parent lookup while the parent is empty (none while disabled); a re-render with the same props adds no listener and queues nothing new; a step that changes nothing the header shows calls the component's setState zero times; and right after unmount, even before the first frame, nothing is queued.",
+    authority:
+      'Decision by Kyle Mathews (GitHub KyleAMathews), 2026-11-12: a work law with one pending handle per kind, cancelled on detach and unmount (review findings R3, R8, R9, T5, T10); 3.2.1 coalesced scroll events into one frame (scrollTicking).',
+    limits: `Frames are counted in the driver's frame queue; setState calls are counted for the component only (the hook's state setter bails out by itself). ${LIMITS}`,
+  },
+  histories: {
+    arbitrary: historiesOf({
+      mountPin: either,
+      mountParent: fc.constantFrom('window', 'div', 'late'),
+      scrollOn: ['parent', 'other'],
+      toggles: ['pin', 'disable', 'parent'],
+      resizes: true,
+      focus: true,
+      rerenders: true,
+      pending: fc.constantFrom('none', 'scroll', 'resize', 'immediate'),
+    }),
+    runs: 40,
+    fixedSeeds: [1],
+    states: [
+      'two scroll events in one frame',
+      're-rendered with pin',
+      'parent empty across re-renders',
+      'idle frame',
+      'unmounted with work pending',
+      'unmounted before the first frame',
+      'disabled with the parent empty',
+    ],
+    constructed: [
+      {
+        // A ref parent, unmounted before its first frame: its lookup and the
+        // end of mounting are both cancelled.
+        name: 'a ref parent, unmounted before the first frame',
+        enters: ['unmounted before the first frame'],
+        build: g => ({
+          ...g,
+          mount: { ...top, parent: 'late' },
+          actions: [],
+          pending: 'immediate',
+        }),
+      },
+      {
+        name: 'the parent empties, then disable',
+        enters: ['disabled with the parent empty'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [
+            tg('parent'),
+            tg('parent'),
+            tg('disable'),
+            { kind: 'rerender', settle: true },
+          ],
+        }),
+      },
+      {
+        name: 'two scroll events before one frame',
+        enters: ['two scroll events in one frame'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [{ ...sc(far(g.params)), jitter: 10 }],
+        }),
+      },
+      {
+        name: 'pin, then re-render with the same props',
+        enters: ['re-rendered with pin'],
+        build: g => ({
+          ...g,
+          mount: { ...top, pin: true },
+          actions: [
+            sc(far(g.params)),
+            { kind: 'rerender', settle: true },
+            { kind: 'rerender', settle: true },
+          ],
+        }),
+      },
+      {
+        name: 'the parent empties, then three re-renders',
+        enters: ['parent empty across re-renders'],
+        build: g => ({
+          ...g,
+          mount: top,
+          actions: [
+            tg('parent'),
+            tg('parent'),
+            { kind: 'rerender', settle: true },
+            { kind: 'rerender', settle: true },
+            { kind: 'rerender', settle: true },
+          ],
+        }),
+      },
+      {
+        name: 'small scrolls inside the header, then unmount with a scroll pending',
+        enters: ['idle frame', 'unmounted with work pending'],
+        build: g => ({
+          ...g,
+          params: { ...g.params, pinStart: 0 },
+          mount: top,
+          actions: [sc(5), sc(0), sc(0)],
+          pending: 'scroll',
+        }),
+      },
+    ],
+  },
+  resolve,
+  model: () => ({}),
+  check: (plan, trace) => {
+    const thrown = noThrow(trace)
+    if (thrown) return thrown
+    const seen = checkpoints(trace)
+    for (let i = 1; i < seen.length; i++) {
+      const step = plan.steps[i - 1]
+      const s = seen[i]
+      const lookingUp = step.props.parent === 'none' && !step.props.disable
+      const at = `step ${i}`
+      const found =
+        (step.kind === 'scroll' &&
+        step.props.parent !== 'none' &&
+        step.scroller === step.props.parent
+          ? differs(
+              at,
+              'work',
+              s.queued,
+              step.props.disable ? 0 : 1,
+              'frames queued after the parent scrolled'
+            )
+          : undefined) ??
+        (step.kind === 'rerender'
+          ? differs(
+              at,
+              'work',
+              { added: s.queued - s.queuedBefore, adds: s.adds },
+              { added: 0, adds: 0 },
+              'a re-render with the same props'
+            )
+          : undefined) ??
+        (step.props.disable &&
+        step.props.parent === 'none' &&
+        step.kind !== 'resize' &&
+        step.kind !== 'swap'
+          ? differs(at, 'work', s.queued, 0, 'lookups queued while disabled')
+          : undefined) ??
+        (lookingUp &&
+        step.kind !== 'resize' &&
+        step.kind !== 'swap' &&
+        s.queued > 1
+          ? violation(
+              at,
+              `${s.queued} lookups queued for an empty parent`,
+              'work'
+            )
+          : undefined) ??
+        (s.callbacks.length === 0 &&
+        JSON.stringify(shownOf(s)) === JSON.stringify(shownOf(seen[i - 1]))
+          ? differs(
+              at,
+              'work',
+              s.setStates,
+              0,
+              'setState in a step that changed nothing'
+            )
+          : undefined)
+      if (found) return found
+    }
+    return (
+      differs(
+        'unmount',
+        'work',
+        unmountOf(trace).value.queued,
+        0,
+        'frames queued after unmount'
+      ) ?? pass
+    )
+  },
+  reached: (plan, trace) => {
+    const seen = checkpoints(trace)
+    const found = new Set()
+    if (plan.pending === 'scroll' || plan.pending === 'resize')
+      found.add('unmounted with work pending')
+    if (plan.pending === 'immediate')
+      found.add('unmounted before the first frame')
+    if (
+      plan.steps.some(
+        step => step.props.disable && step.props.parent === 'none'
+      )
+    )
+      found.add('disabled with the parent empty')
+    plan.steps.forEach((step, n) => {
+      const s = seen[n + 1]
+      if (
+        step.kind === 'scroll' &&
+        step.jitter !== null &&
+        step.scroller === step.props.parent &&
+        step.props.parent !== 'none'
+      )
+        found.add('two scroll events in one frame')
+      if (
+        step.kind === 'rerender' &&
+        step.props.pin &&
+        step.props.parent !== 'none'
+      )
+        found.add('re-rendered with pin')
+      if (step.kind === 'rerender' && step.props.parent === 'none')
+        found.add('parent empty across re-renders')
+      if (
+        step.kind === 'scroll' &&
+        s &&
+        s.callbacks.length === 0 &&
+        JSON.stringify(shownOf(s)) === JSON.stringify(shownOf(seen[n]))
+      )
+        found.add('idle frame')
+    })
+    return found
+  },
+  calibrations: [
+    {
+      name: 'one frame per scroll event',
+      law: 'work',
+      corrupt: (trace, plan) => {
+        const i = trace.findIndex(
+          o =>
+            o.checkpoint === 'step' &&
+            plan.steps[o.value.step - 1].kind === 'scroll' &&
+            plan.steps[o.value.step - 1].scroller ===
+              plan.steps[o.value.step - 1].props.parent &&
+            plan.steps[o.value.step - 1].props.parent !== 'none' &&
+            !plan.steps[o.value.step - 1].props.disable &&
+            o.value.queued === 1
+        )
+        return i === -1 ? undefined : replaceAt(trace, i, { queued: 2 })
+      },
+    },
+    {
+      name: 'a frame left queued after unmount',
+      law: 'work',
+      corrupt: trace =>
+        trace.map(o =>
+          o.checkpoint === 'unmount'
+            ? { ...o, value: { ...o.value, queued: 1 } }
+            : o
+        ),
+    },
+  ],
+}
+oracleProperty({
+  ...workLaw,
+  model: workLaw.model,
+  check: workLaw.check,
+  id: 'headroom work',
+  owns: ['src/index.js', 'src/core.js'],
+  driver: drive,
+})
+oracleProperty({
+  ...workLaw,
+  model: workLaw.model,
+  check: workLaw.check,
+  id: 'useHeadroom work',
+  owns: ['src/useHeadroom.js', 'src/core.js'],
+  driver: driveHook,
 })

@@ -21,6 +21,22 @@
 - The wrapper follows the header's exact height, fractions included, through
   any size change, whatever the parent, with a `ResizeObserver` (#166, #133,
   #174, #92).
+- A header that mounts while the page is already scrolled (Back navigation)
+  starts hidden, so the first scroll up shows it; re-attaching to a new
+  `parent`, or enabling after `disable`, measures from the new position
+  instead of the old scroller's.
+- Scrolling up slowly shows a hidden header inside its own region, `pinStart`
+  included.
+- A frame less than 1px past either end (browser zoom) is no longer treated
+  as overscroll, and a horizontal scrollbar no longer hides the bottom of the
+  page from the header.
+- `parent={() => document}` (and `documentElement`, `body`) works again, as in
+  3.2.1.
+- `unpinnedOffset` accepts any CSS length, including `calc()`, `var()` and `0`.
+- With `matchScrollSpeed`, a flick after a pause slides fast, not at the
+  slowest speed.
+- A `parent()` that returns nothing is looked up once per frame (not once per
+  render, forever), and scroll events coalesce into one frame, as in 3.2.1.
 - The published package no longer ships `.babelrc` and other config (#129).
 - Works in the Next.js App Router: the build starts with `'use client'` (#211).
 
@@ -47,18 +63,24 @@
 - A call to `pin()`, `unpin()` or `unfix()` that names the current state, or
   comes while `pin` or `disable` is set, does nothing.
 - A step that changes nothing the header shows no longer re-renders it.
+- The header's height is tracked through a `ResizeObserver` (or window resize
+  where there is none) while `calcHeightOnResize` is on, instead of being
+  remeasured whenever `children` change. With `calcHeightOnResize={false}` the
+  height measured at mount is kept, even if the children grow.
 
 ### Removed
 
 - `propTypes` and the `prop-types` dependency (React 19 ignores them); the
   props are documented in the README.
+- The `shallowequal` dependency: `<Headroom>` is a `PureComponent` that renders
+  only when something it shows changes.
 - Vendor-prefixed inline styles and the passive-listener feature check.
 
 ### Internal
 
 - Oracle tests (`test/headroom.oracle.js`, with
-  [@tanstack/oracles](https://github.com/TanStack/oracles)): 25 properties over
+  [@tanstack/oracles](https://github.com/TanStack/oracles)): 28 properties over
   `<Headroom>` and `useHeadroom`, run under React 18 and 19, with a mutation
-  gap check in CI.
+  gap check in CI (all 299 mutants killed).
 - Babel 7, ESLint 9, Vitest, pnpm and GitHub Actions replace the old toolchain.
 - Credited headroom.js in LICENSE and the README (#144).

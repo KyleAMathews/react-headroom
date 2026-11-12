@@ -6,17 +6,15 @@ on:
   pull_request:
 
 jobs:
+  # The latest Node only: pnpm 11 needs Node 22.13 or later.
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        node: [20, 22, 24]
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node }}
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test
@@ -30,7 +28,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm add -D react@^19 react-dom@^19
@@ -45,7 +43,7 @@ jobs:
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm test:gaps
